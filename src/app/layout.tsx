@@ -6,8 +6,21 @@ import { ThemeProvider } from "@/context/ThemeContext";
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
 
 export const metadata: Metadata = {
-  title: "KtoKomuIle - Rozliczenia Grupowe",
-  description: "Rozlicz wydatki grupowe łatwo i szybko",
+  title: "OddajHajs.org - Koniec z problemami z kasą!",
+  description:
+    "Rozlicz wydatki z imprezy, wyjazdu czy zamówienia. Sprawdź kto komu ile hajsu ma oddać i odzyskaj swoje pieniądze albo dopłać do imprezy!",
+  keywords:
+    "rozliczenia grupowe, podział wydatków, oddaj hajs, podział kosztów, impreza, wyjazd, znajomi, pieniądze",
+  authors: [{ name: "OddajHajs.org Team" }],
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+  openGraph: {
+    type: "website",
+    title: "OddajHajs.org - Odzyskaj swój hajs!",
+    description:
+      "Rozlicz melanż, wyjazd, zamówienie - kończymy z creative accounting!",
+    siteName: "OddajHajs.org",
+  },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
   },
