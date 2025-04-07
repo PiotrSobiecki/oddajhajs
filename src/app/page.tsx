@@ -359,6 +359,8 @@ export default function Home() {
       };
       setPeople([...people, newPerson]);
       setNewPersonName("");
+    } else {
+      showToast("Ej no, wypełnij wszystkie pola! Nie bądź leń!", "error");
     }
   };
 
@@ -711,7 +713,11 @@ export default function Home() {
                 </div>
               </div>
 
-              <ExpenseForm people={people} onAddExpense={addExpense} />
+              <ExpenseForm
+                people={people}
+                onAddExpense={addExpense}
+                showToast={showToast}
+              />
             </div>
 
             {expenses.length > 0 && (
@@ -769,6 +775,7 @@ export default function Home() {
               onUpdateExpense={updateExpense}
               onDeleteExpense={deleteExpense}
               onExport={exportToCSV}
+              showToast={showToast}
             />
           </div>
         )}

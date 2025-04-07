@@ -44,4 +44,5 @@ export interface ResultsProps {
   onUpdateExpense: (updatedExpense: Expense) => void;
   onDeleteExpense: (expenseId: string) => void;
   onExport: () => void;
+  showToast?: (message: string, type: "success" | "error") => void;
 }

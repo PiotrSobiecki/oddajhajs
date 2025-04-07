@@ -36,6 +36,7 @@ export default function Results({
   onUpdateExpense,
   onDeleteExpense,
   onExport,
+  showToast,
 }: ResultsProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -184,6 +185,7 @@ export default function Results({
               onAddExpense(expense);
               setShowAddForm(false);
             }}
+            showToast={showToast}
           />
         </div>
       )}

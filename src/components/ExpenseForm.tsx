@@ -9,11 +9,13 @@ import Calculator from "./Calculator";
 interface ExpenseFormProps {
   people: { id: string; name: string }[];
   onAddExpense: (expense: Expense) => void;
+  showToast?: (message: string, type: "success" | "error") => void;
 }
 
 export default function ExpenseForm({
   people,
   onAddExpense,
+  showToast,
 }: ExpenseFormProps) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -34,7 +36,11 @@ export default function ExpenseForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount || !paidBy || splitBetween.length === 0) {
-      alert("Ej no, wypełnij wszystkie pola! Nie bądź leń!");
+      if (showToast) {
+        showToast("Ej no, wypełnij wszystkie pola! Nie bądź leń!", "error");
+      } else {
+        alert("Ej no, wypełnij wszystkie pola! Nie bądź leń!");
+      }
       return;
     }
 
