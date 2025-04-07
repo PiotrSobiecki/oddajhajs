@@ -1,0 +1,62 @@
+/* purgecss start ignore */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* purgecss end ignore */
+
+@layer base {
+  html {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  body {
+    @apply bg-inherit text-inherit;
+  }
+}
+
+/* Style dla ciemnego motywu */
+input,
+select,
+textarea {
+  @apply bg-gray-800 border-gray-700 text-gray-100;
+}
+
+input::placeholder {
+  @apply text-gray-500;
+}
+
+input[type="checkbox"] {
+  @apply bg-gray-800 border-gray-600;
+}
+
+.bg-white {
+  @apply bg-gray-800;
+}
+
+.text-gray-700 {
+  @apply text-gray-300;
+}
+
+.text-gray-600 {
+  @apply text-gray-400;
+}
+
+.border-gray-300 {
+  @apply border-gray-700;
+}
+
+.bg-gray-50 {
+  @apply bg-gray-700;
+}
+
+.bg-gray-100 {
+  @apply bg-gray-700;
+}
+
+.hover\:bg-gray-200:hover {
+  @apply hover:bg-gray-600;
+}
+
+.shadow-md {
+  @apply shadow-gray-900;
+}
