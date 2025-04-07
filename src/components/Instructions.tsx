@@ -89,7 +89,7 @@ export default function Instructions({ onClose }: InstructionsProps) {
                 <div className="flex items-center gap-3">
                   <FaMoneyBillWave className="text-blue-400 text-2xl" />
                   <h3 className="text-xl font-semibold">
-                    Krok 2: Wpisz, co kto walnął hajsem
+                    Krok 2: Wpisz, na co kto walnął hajsem
                   </h3>
                 </div>
                 <p>
@@ -103,7 +103,7 @@ export default function Instructions({ onClose }: InstructionsProps) {
                   </li>
                   <li>
                     Walnij kwotę, ile to kosztowało (oczywiście w zł, nie w
-                    kapsach od piwa)
+                    kapslach od piwa)
                   </li>
                   <li>Zaznacz, kto wyciągnął kartę/gotówkę</li>
                   <li>

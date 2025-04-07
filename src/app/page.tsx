@@ -50,7 +50,7 @@ export default function Home() {
         document.body.removeChild(fileInput);
       }
     };
-  }, [fileInput]);
+  }, []);
 
   const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -59,6 +59,9 @@ export default function Home() {
     if (files && files[0]) {
       const file = files[0];
       const reader = new FileReader();
+
+      // Pokazujemy Toast informujący o rozpoczęciu importu
+      showToast("Importowanie pliku w toku...", "success");
 
       if (file.name.endsWith(".csv")) {
         // Obsługa plików CSV
@@ -88,6 +91,10 @@ export default function Home() {
 
             // Konwertujemy do CSV
             const csv = XLSX.utils.sheet_to_csv(worksheet, { FS: ";" });
+
+            // Zwolnij pamięć po konwersji
+            (workbook as any) = null;
+
             parseCSVData(csv);
           } catch (error) {
             showToast(
@@ -111,16 +118,14 @@ export default function Home() {
     try {
       // Usuwamy BOM jeśli istnieje
       const cleanContent = content.replace(/^\uFEFF/, "");
-      console.log(
-        "Zawartość pliku CSV:",
-        cleanContent.substring(0, 200) + "..."
-      ); // Pokazujemy początek pliku
+
+      // Ograniczamy logowanie, aby nie obciążać konsoli i pamięci
+      console.log("Rozpoczęto import pliku");
 
       // Dzielimy na linie i usuwamy puste
       const lines = cleanContent
         .split(/\r?\n/)
         .filter((line) => line.trim().length > 0);
-      console.log(`Znaleziono ${lines.length} niepustych linii`);
 
       if (lines.length < 3) {
         showToast(
@@ -131,198 +136,15 @@ export default function Home() {
       }
 
       // Zmienne do przechowywania danych
-      const newPeople: Set<string> = new Set();
+      const newPeople = new Set<string>();
       const importedExpenses: Expense[] = [];
       let currentSection = "";
       let foundExpenses = false;
 
-      // Przetwarzamy linie
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        console.log(`Linia ${i}: ${line}`);
-
-        // Sprawdzamy nagłówki sekcji
-        if (line.startsWith("Wydatki:") || line.includes("Wydatki:")) {
-          currentSection = "expenses";
-          foundExpenses = true;
-          console.log("Znaleziono sekcję wydatków");
-          continue;
-        }
-
-        if (currentSection === "expenses" && i > 0) {
-          // Pomijamy wiersz nagłówka
-          if (line.includes("Opis;Kwota;") || line.includes("Opis,Kwota,")) {
-            console.log("Pomijam wiersz nagłówka");
-            continue;
-          }
-
-          // Sprawdzamy czy linia ma separator CSV
-          let parts: string[];
-          if (line.includes(";")) {
-            parts = line.split(";");
-          } else if (line.includes(",")) {
-            parts = line.split(",");
-          } else {
-            console.warn("Nieprawidłowy format linii (brak separatora):", line);
-            continue;
-          }
-
-          console.log(`Podzielono linię na ${parts.length} części:`, parts);
-
-          if (parts.length >= 4) {
-            const [description, amountStr, paidByName, splitBetweenStr] = parts;
-
-            // Próbujemy skonwertować kwotę na liczbę
-            let amount: number;
-            try {
-              amount = parseFloat(amountStr.replace(",", ".").trim());
-              if (isNaN(amount) || amount <= 0) {
-                console.warn("Nieprawidłowa kwota:", amountStr);
-                continue;
-              }
-            } catch (e) {
-              console.warn("Błąd konwersji kwoty:", amountStr, e);
-              continue;
-            }
-
-            const paidBy = paidByName.trim();
-            if (!paidBy) {
-              console.warn("Brak osoby płacącej");
-              continue;
-            }
-            newPeople.add(paidBy);
-
-            // Przetwarzamy osoby, które składają się na wydatek
-            const splitNames = splitBetweenStr
-              .split(/,|\|/) // Rozdzielamy po przecinku lub znaku |
-              .map((name) => name.trim())
-              .filter((name) => name.length > 0);
-
-            if (splitNames.length === 0) {
-              console.warn("Brak osób składających się na wydatek");
-              continue;
-            }
-
-            splitNames.forEach((name) => newPeople.add(name));
-
-            console.log(
-              `Dodano wydatek: ${description.trim()}, ${amount} zł, zapłacił: ${paidBy}, dzielone między: ${splitNames.join(
-                ", "
-              )}`
-            );
-
-            // Tworzymy wydatek
-            importedExpenses.push({
-              id: uuidv4(),
-              description: description.trim() || "Brak opisu",
-              amount: amount,
-              paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
-              splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
-              importedData: {
-                paidByName: paidBy,
-                splitBetweenNames: splitNames,
-              },
-            });
-          } else {
-            console.warn("Za mało danych w linii:", line);
-          }
-        }
-      }
-
-      if (!foundExpenses) {
-        showToast(
-          "Nie znaleziono sekcji wydatków w pliku. Plik powinien zawierać nagłówek 'Wydatki:'.",
-          "error"
-        );
-        return;
-      }
-
-      console.log(
-        `Znaleziono ${newPeople.size} unikalnych osób i ${importedExpenses.length} wydatków`
-      );
-
-      // Tworzymy nowe osoby
-      const newPeopleArray: Person[] = Array.from(newPeople).map((name) => ({
-        id: uuidv4(),
-        name,
-      }));
-      console.log("Utworzone osoby:", newPeopleArray);
-
-      // Aktualizujemy wydatki z ID osób
-      const processedExpenses = importedExpenses
-        .map((expense) => {
-          const paidByPerson = newPeopleArray.find(
-            (p) => p.name === expense.importedData?.paidByName
-          );
-
-          if (!paidByPerson) {
-            console.warn(
-              `Nie znaleziono osoby płacącej: ${expense.importedData?.paidByName}`
-            );
-            return null;
-          }
-
-          const splitBetweenIds =
-            expense.importedData?.splitBetweenNames
-              .map((name) => {
-                const person = newPeopleArray.find(
-                  (p) => p.name === (name as string)
-                );
-                if (!person) {
-                  console.warn(`Nie znaleziono osoby dla podziału: ${name}`);
-                }
-                return person ? person.id : "";
-              })
-              .filter((id: string) => id !== "") || [];
-
-          if (splitBetweenIds.length === 0) {
-            console.warn("Brak osób dla podziału wydatku:", expense);
-            return null;
-          }
-
-          // Usuwamy tymczasowe dane
-          const { importedData, ...expenseData } = expense as any;
-
-          return {
-            ...expenseData,
-            paidBy: paidByPerson.id,
-            splitBetween: splitBetweenIds,
-          };
-        })
-        .filter(
-          (expense): expense is Expense =>
-            expense !== null &&
-            Boolean(expense.paidBy) &&
-            expense.splitBetween.length > 0
-        );
-
-      console.log(
-        `Po przetworzeniu zostało ${processedExpenses.length} poprawnych wydatków`
-      );
-
-      if (processedExpenses.length === 0) {
-        showToast(
-          "Nie znaleziono prawidłowych danych wydatków w pliku.",
-          "error"
-        );
-        return;
-      }
-
-      // Aktualizujemy stan aplikacji
-      setPeople(newPeopleArray);
-      setExpenses(processedExpenses);
-
-      // Obliczamy rozliczenia
-      calculateSettlements(processedExpenses);
-
-      // Przechodzimy do wyniku
-      setStep("results");
-
-      // Pokazujemy ładny toast
-      showToast(
-        `Zaimportowano ${processedExpenses.length} wydatków i ${newPeopleArray.length} osób!`,
-        "success"
-      );
+      // Przetwarzamy linie - używamy setTimeout, aby zwolnić główny wątek i zapobiec zablokowaniu UI
+      setTimeout(() => {
+        processFileLines(lines, newPeople, importedExpenses);
+      }, 0);
     } catch (error) {
       console.error("Błąd podczas przetwarzania pliku:", error);
       showToast(
@@ -330,6 +152,191 @@ export default function Home() {
         "error"
       );
     }
+  };
+
+  // Wydzielona funkcja przetwarzania linii, aby podzielić zadanie i nie blokować UI
+  const processFileLines = (
+    lines: string[],
+    newPeople: Set<string>,
+    importedExpenses: Expense[]
+  ) => {
+    let currentSection = "";
+    let foundExpenses = false;
+
+    // Przetwarzamy linie
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Sprawdzamy nagłówki sekcji
+      if (line.startsWith("Wydatki:") || line.includes("Wydatki:")) {
+        currentSection = "expenses";
+        foundExpenses = true;
+        continue;
+      }
+
+      if (currentSection === "expenses" && i > 0) {
+        // Pomijamy wiersz nagłówka
+        if (line.includes("Opis;Kwota;") || line.includes("Opis,Kwota,")) {
+          continue;
+        }
+
+        // Sprawdzamy czy linia ma separator CSV
+        let parts: string[];
+        if (line.includes(";")) {
+          parts = line.split(";");
+        } else if (line.includes(",")) {
+          parts = line.split(",");
+        } else {
+          continue;
+        }
+
+        if (parts.length >= 4) {
+          const [description, amountStr, paidByName, splitBetweenStr] = parts;
+
+          // Próbujemy skonwertować kwotę na liczbę
+          let amount: number;
+          try {
+            amount = parseFloat(amountStr.replace(",", ".").trim());
+            if (isNaN(amount) || amount <= 0) {
+              continue;
+            }
+          } catch (e) {
+            continue;
+          }
+
+          const paidBy = paidByName.trim();
+          if (!paidBy) {
+            continue;
+          }
+          newPeople.add(paidBy);
+
+          // Przetwarzamy osoby, które składają się na wydatek
+          const splitNames = splitBetweenStr
+            .split(/,|\|/) // Rozdzielamy po przecinku lub znaku |
+            .map((name) => name.trim())
+            .filter((name) => name.length > 0);
+
+          if (splitNames.length === 0) {
+            continue;
+          }
+
+          splitNames.forEach((name) => newPeople.add(name));
+
+          // Tworzymy wydatek
+          importedExpenses.push({
+            id: uuidv4(),
+            description: description.trim() || "Brak opisu",
+            amount: amount,
+            paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
+            splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
+            importedData: {
+              paidByName: paidBy,
+              splitBetweenNames: splitNames,
+            },
+          });
+        }
+      }
+    }
+
+    if (!foundExpenses) {
+      showToast(
+        "Nie znaleziono sekcji wydatków w pliku. Plik powinien zawierać nagłówek 'Wydatki:'.",
+        "error"
+      );
+      return;
+    }
+
+    // Tworzymy nowe osoby - używamy setTimeout, aby dać oddech wątkowi UI
+    setTimeout(() => {
+      finishProcessing(newPeople, importedExpenses);
+    }, 0);
+  };
+
+  // Funkcja kończąca przetwarzanie pliku
+  const finishProcessing = (
+    newPeople: Set<string>,
+    importedExpenses: Expense[]
+  ) => {
+    // Tworzymy nowe osoby
+    const newPeopleArray: Person[] = Array.from(newPeople).map((name) => ({
+      id: uuidv4(),
+      name,
+    }));
+
+    // Przygotowujemy mapę osób dla szybszego wyszukiwania (zamiast używać find)
+    const peopleMap = new Map<string, Person>();
+    newPeopleArray.forEach((person) => {
+      peopleMap.set(person.name, person);
+    });
+
+    // Aktualizujemy wydatki z ID osób - używamy bardziej efektywnego podejścia z mapą
+    const processedExpenses = importedExpenses
+      .map((expense) => {
+        const paidByPerson = peopleMap.get(
+          expense.importedData?.paidByName || ""
+        );
+
+        if (!paidByPerson) {
+          return null;
+        }
+
+        const splitBetweenIds: string[] = [];
+        const splitNames = expense.importedData?.splitBetweenNames || [];
+
+        for (const name of splitNames) {
+          const person = peopleMap.get(name as string);
+          if (person) {
+            splitBetweenIds.push(person.id);
+          }
+        }
+
+        if (splitBetweenIds.length === 0) {
+          return null;
+        }
+
+        // Usuwamy tymczasowe dane i zwracamy właściwy obiekt wydatku
+        return {
+          id: expense.id,
+          description: expense.description,
+          amount: expense.amount,
+          paidBy: paidByPerson.id,
+          splitBetween: splitBetweenIds,
+        };
+      })
+      .filter(
+        (expense): expense is Expense =>
+          expense !== null &&
+          Boolean(expense.paidBy) &&
+          expense.splitBetween.length > 0
+      );
+
+    if (processedExpenses.length === 0) {
+      showToast(
+        "Nie znaleziono prawidłowych danych wydatków w pliku.",
+        "error"
+      );
+      return;
+    }
+
+    // Aktualizujemy stan aplikacji
+    setPeople(newPeopleArray);
+    setExpenses(processedExpenses);
+
+    // Obliczamy rozliczenia
+    calculateSettlements(processedExpenses);
+
+    // Przechodzimy do wyniku
+    setStep("results");
+
+    // Pokazujemy ładny toast
+    showToast(
+      `Zaimportowano ${processedExpenses.length} wydatków i ${newPeopleArray.length} osób!`,
+      "success"
+    );
+
+    // Czyścimy dane z pamięci
+    (newPeople as any) = null;
+    (importedExpenses as any) = null;
   };
 
   const importFromFile = () => {
