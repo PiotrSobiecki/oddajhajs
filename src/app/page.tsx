@@ -11,6 +11,7 @@ import Instructions from "@/components/Instructions";
 import Calculator from "@/components/Calculator";
 import * as XLSX from "xlsx";
 import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import IntroPopup from "@/components/IntroPopup";
 
 export default function Home() {
   const [step, setStep] = useState<"people" | "expenses" | "results">("people");
@@ -20,6 +21,7 @@ export default function Home() {
   const [newPersonName, setNewPersonName] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showIntroPopup, setShowIntroPopup] = useState(false);
   const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -34,6 +36,12 @@ export default function Home() {
   useEffect(() => {
     // Dodajemy klasę dark do elementu html
     document.documentElement.classList.add("dark");
+
+    // Sprawdzamy czy użytkownik już widział popup
+    const hasSeenIntro = localStorage.getItem("oddajhajs_seen_intro");
+    if (!hasSeenIntro) {
+      setShowIntroPopup(true);
+    }
 
     // Tworzymy ukryty input dla plików
     const input = document.createElement("input");
@@ -587,6 +595,12 @@ export default function Home() {
     }, 7000); // Toast zniknie po 7 sekundach
   };
 
+  // Funkcja zamykająca popup i zapisująca informację do localStorage
+  const handleCloseIntroPopup = () => {
+    setShowIntroPopup(false);
+    localStorage.setItem("oddajhajs_seen_intro", "true");
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
       <Navbar
@@ -795,6 +809,9 @@ export default function Home() {
       )}
 
       {showCalculator && <Calculator onClose={handleCloseCalculator} />}
+
+      {/* Popup informacyjny */}
+      {showIntroPopup && <IntroPopup onClose={handleCloseIntroPopup} />}
 
       {/* Toast powiadomienie */}
       {toast.visible && (
