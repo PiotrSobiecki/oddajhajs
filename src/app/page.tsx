@@ -10,7 +10,7 @@ import Footer from "@/components/Footer";
 import Instructions from "@/components/Instructions";
 import Calculator from "@/components/Calculator";
 import * as XLSX from "xlsx";
-import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import { FaCheckCircle, FaExclamationTriangle, FaPlus } from "react-icons/fa";
 import IntroPopup from "@/components/IntroPopup";
 
 export default function Home() {
@@ -637,11 +637,12 @@ export default function Home() {
                     onClick={addPerson}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Dodaj ziomka
+                    <span className="hidden sm:inline">Dodaj ziomka</span>
+                    <FaPlus className="inline sm:hidden" />
                   </button>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Wpisz imię i naciśnij Enter lub kliknij "Dodaj ziomka"
+                  Wpisz imię i naciśnij Enter lub kliknij przycisk dodawania
                 </p>
               </div>
 
@@ -702,14 +703,14 @@ export default function Home() {
         {step === "expenses" && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">
+              <div className="flex flex-col mb-6">
+                <h1 className="text-2xl font-bold mb-4">
                   Wydatki z wyjazdu/imprezy
                 </h1>
-                <div className="space-x-2">
+                <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
                   <button
                     onClick={() => setStep("people")}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    className="w-full sm:w-auto px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                   >
                     ← Wróć do listy osób
                   </button>
@@ -719,14 +720,14 @@ export default function Home() {
                         calculateSettlements(expenses);
                         setStep("results");
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Pokaż rozliczenie →
                     </button>
                   ) : (
                     <button
                       onClick={importFromFile}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      className="w-full sm:w-auto px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     >
                       Importuj z Excela
                     </button>
@@ -779,10 +780,10 @@ export default function Home() {
 
         {step === "results" && (
           <div>
-            <div className="mb-4 flex justify-end space-x-2">
+            <div className="mb-4 sm:flex sm:justify-end">
               <button
                 onClick={() => setStep("expenses")}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="w-full sm:w-auto px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 ← Wróć do wydatków
               </button>
