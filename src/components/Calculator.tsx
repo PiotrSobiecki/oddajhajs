@@ -190,33 +190,36 @@ export default function Calculator({
               +
             </button>
 
-            {[1, 2, 3].map((num) => (
+            <div className="col-span-3 grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((num) => (
+                <button
+                  key={num}
+                  onClick={(e) => handleNumberClick(e, num.toString())}
+                  className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-md transition-colors"
+                >
+                  {num}
+                </button>
+              ))}
+
               <button
-                key={num}
-                onClick={(e) => handleNumberClick(e, num.toString())}
+                onClick={(e) => handleNumberClick(e, "0")}
+                className="col-span-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-md transition-colors"
+              >
+                0
+              </button>
+              <button
+                onClick={(e) => handleDecimalClick(e)}
                 className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-md transition-colors"
               >
-                {num}
+                .
               </button>
-            ))}
-            <button
-              onClick={(e) => handleEquals(e)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-md transition-colors"
-            >
-              =
-            </button>
+            </div>
 
             <button
-              onClick={(e) => handleNumberClick(e, "0")}
-              className="col-span-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-md transition-colors"
+              onClick={(e) => handleEquals(e)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-md transition-colors row-span-2"
             >
-              0
-            </button>
-            <button
-              onClick={(e) => handleDecimalClick(e)}
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-md transition-colors"
-            >
-              .
+              =
             </button>
           </div>
         </div>
