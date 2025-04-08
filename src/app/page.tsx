@@ -673,7 +673,7 @@ export default function Home() {
                     onClick={importFromFile}
                     className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
                   >
-                    <span>Importuj dane z Excela</span>
+                    <span>Importuj dane z pliku csv</span>
                   </button>
                 )}
               </div>

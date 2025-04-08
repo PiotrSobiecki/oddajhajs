@@ -15,6 +15,12 @@ import {
   FaArrowRight,
   FaLongArrowAltRight,
   FaArrowCircleRight,
+  FaCopy,
+  FaWhatsapp,
+  FaTelegram,
+  FaEnvelope,
+  FaShareAlt,
+  FaGoogle,
 } from "react-icons/fa";
 
 interface Person {
@@ -44,6 +50,7 @@ export default function Results({
   const [calculatorTarget, setCalculatorTarget] = useState<"main" | "edit">(
     "main"
   );
+  const [showShareOptions, setShowShareOptions] = useState(false);
 
   const getPersonName = (id: string) => {
     return people.find((p) => p.id === id)?.name || id;
@@ -74,6 +81,78 @@ export default function Results({
     }
   };
 
+  // Funkcja generująca tekst do udostępnienia
+  const generateShareText = () => {
+    let text = "Rozliczenie z wyjazdu/imprezy:\n\n";
+
+    if (settlements.length === 0) {
+      text += "Wszyscy kwita! Nikt nikomu nic nie musi oddawać. 👍";
+    } else {
+      text += "Kto komu ma oddać hajs:\n";
+      settlements.forEach((settlement) => {
+        const fromName = getPersonName(settlement.from);
+        const toName = getPersonName(settlement.to);
+        const amount = settlement.amount.toFixed(2);
+        text += `${fromName} → ${toName}: ${amount} zł\n`;
+      });
+    }
+
+    text += "\n-- Rozliczenie wygenerowane przez oddajhajs.org --";
+    return text;
+  };
+
+  // Funkcja kopiująca tekst do schowka
+  const copyToClipboard = () => {
+    const text = generateShareText();
+    navigator.clipboard.writeText(text).then(
+      () => {
+        showToast && showToast("Skopiowano do schowka!", "success");
+        setShowShareOptions(false);
+      },
+      (err) => {
+        console.error("Nie udało się skopiować tekstu: ", err);
+        showToast && showToast("Nie udało się skopiować tekstu", "error");
+      }
+    );
+  };
+
+  // Funkcje udostępniania do różnych komunikatorów
+  const shareToWhatsApp = () => {
+    const text = encodeURIComponent(generateShareText());
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+    setShowShareOptions(false);
+  };
+
+  const shareToTelegram = () => {
+    const text = encodeURIComponent(generateShareText());
+    window.open(
+      `https://t.me/share/url?url=oddajhajs.org&text=${text}`,
+      "_blank"
+    );
+    setShowShareOptions(false);
+  };
+
+  const shareByDefaultEmail = () => {
+    const subject = encodeURIComponent(
+      "Rozliczenie z wyjazdu/imprezy - oddajhajs.org"
+    );
+    const body = encodeURIComponent(generateShareText());
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    setShowShareOptions(false);
+  };
+
+  const shareByGmail = () => {
+    const subject = encodeURIComponent(
+      "Rozliczenie z wyjazdu/imprezy - oddajhajs.org"
+    );
+    const body = encodeURIComponent(generateShareText());
+    window.open(
+      `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
+      "_blank"
+    );
+    setShowShareOptions(false);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4">
@@ -91,9 +170,62 @@ export default function Results({
             onClick={onExport}
             className="w-full sm:w-auto px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
           >
-            <FaFileExport /> <span>Eksportuj</span>
+            <FaFileExport /> <span>Eksportuj do csv</span>
+          </button>
+          <button
+            onClick={() => setShowShareOptions(!showShareOptions)}
+            className="w-full sm:w-auto px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2"
+          >
+            <FaShareAlt /> <span>Udostępnij</span>
           </button>
         </div>
+
+        {showShareOptions && (
+          <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
+            <h3 className="text-white font-medium mb-3">
+              Udostępnij rozliczenie:
+            </h3>
+            <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-2">
+              <button
+                onClick={copyToClipboard}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                <FaCopy />
+                <span>Kopiuj</span>
+              </button>
+              <div className="grid grid-cols-2 gap-2 md:contents">
+                <button
+                  onClick={shareToWhatsApp}
+                  className="flex items-center justify-center gap-1 px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FaWhatsapp />
+                  <span>WhatsApp</span>
+                </button>
+                <button
+                  onClick={shareToTelegram}
+                  className="flex items-center justify-center gap-1 px-2 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                >
+                  <FaTelegram />
+                  <span>Telegram</span>
+                </button>
+                <button
+                  onClick={shareByGmail}
+                  className="flex items-center justify-center gap-1 px-2 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                >
+                  <FaGoogle />
+                  <span>Gmail</span>
+                </button>
+                <button
+                  onClick={shareByDefaultEmail}
+                  className="flex items-center justify-center gap-1 px-2 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  <FaEnvelope />
+                  <span>Outlook</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-gray-800 rounded-lg shadow-md p-6">
@@ -146,7 +278,7 @@ export default function Results({
                       {getPersonName(settlement.from)}
                     </td>
                     <td className="py-3 px-0">
-                      <div className="flex justify-center items-center h-full -ml-[100px]">
+                      <div className="flex justify-center items-center h-full ">
                         <div className="rounded-full border-2 border-green-500 w-8 h-8 flex items-center justify-center bg-gray-800">
                           <FaArrowRight className="text-sm text-green-500 group-hover:text-green-400 transition-colors" />
                         </div>
