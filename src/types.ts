@@ -14,8 +14,15 @@ export interface Expense {
   amount: number;
   paidBy: string;
   splitBetween: string[];
+  payments?: Payment[];
+  isComplexPayment?: boolean;
   date?: string;
   importedData?: ImportedExpenseData;
+}
+
+export interface Payment {
+  personId: string;
+  amount: number;
 }
 
 export interface Settlement {

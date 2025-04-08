@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { FaFacebook } from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -11,6 +12,16 @@ export default function Footer() {
           <p className="text-gray-400 mb-2">
             Aplikacja do rozliczania wydatków grupowych w prosty i intuicyjny
             sposób.
+          </p>
+          <p className="text-gray-400 mb-2">
+            <a
+              href="https://www.facebook.com/groups/4079654065600660"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 flex items-center justify-center gap-2"
+            >
+              <FaFacebook /> Dołącz do naszej grupy na Facebooku
+            </a>
           </p>
           <p className="text-gray-400">
             &copy; {new Date().getFullYear()} | Kontakt:{" "}

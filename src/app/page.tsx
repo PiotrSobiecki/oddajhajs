@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Expense, Person } from "@/types";
+import { Expense, Person, Payment } from "@/types";
 import ExpenseForm from "@/components/ExpenseForm";
 import Results from "@/components/Results";
 import Navbar from "@/components/Navbar";
@@ -22,6 +22,7 @@ export default function Home() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showIntroPopup, setShowIntroPopup] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -171,6 +172,20 @@ export default function Home() {
     let currentSection = "";
     let foundExpenses = false;
 
+    // Funkcja pomocnicza do czyszczenia nazw osób
+    const cleanPersonName = (name: string): string => {
+      let cleanName = name.trim();
+      // Usuwamy przecinek z początku nazwy jeśli istnieje
+      while (cleanName.startsWith(",")) {
+        cleanName = cleanName.substring(1).trim();
+      }
+      // Usuwamy przecinek z końca nazwy jeśli istnieje
+      while (cleanName.endsWith(",")) {
+        cleanName = cleanName.substring(0, cleanName.length - 1).trim();
+      }
+      return cleanName;
+    };
+
     // Przetwarzamy linie
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -190,7 +205,8 @@ export default function Home() {
 
         // Sprawdzamy czy linia ma separator CSV
         let parts: string[];
-        if (line.includes(";")) {
+        const useSemicolon = line.includes(";");
+        if (useSemicolon) {
           parts = line.split(";");
         } else if (line.includes(",")) {
           parts = line.split(",");
@@ -212,36 +228,107 @@ export default function Home() {
             continue;
           }
 
-          const paidBy = paidByName.trim();
+          const paidBy = cleanPersonName(paidByName);
           if (!paidBy) {
             continue;
           }
-          newPeople.add(paidBy);
 
-          // Przetwarzamy osoby, które składają się na wydatek
-          const splitNames = splitBetweenStr
-            .split(/,|\|/) // Rozdzielamy po przecinku lub znaku |
-            .map((name) => name.trim())
-            .filter((name) => name.length > 0);
+          // Sprawdzamy czy w paidBy jest format złożonej płatności (np. "kocu (50.00 zł), cybul (20.00 zł)")
+          const paymentPattern = /([^(]+)\s*\(([0-9.,]+)\s*zł\)/g;
+          let match;
+          let isComplexPayment = false;
+          const detectedPayments: { name: string; amount: number }[] = [];
 
-          if (splitNames.length === 0) {
-            continue;
+          // Ponownie używamy oczyszczonego paidBy jako źródła do dopasowania
+          const cleanedPaidBy = cleanPersonName(paidBy);
+          const paymentText = cleanedPaidBy;
+
+          while ((match = paymentPattern.exec(paymentText)) !== null) {
+            const payerName = cleanPersonName(match[1]);
+            const paymentAmount = parseFloat(match[2].replace(",", "."));
+
+            if (!isNaN(paymentAmount) && paymentAmount > 0) {
+              detectedPayments.push({
+                name: payerName,
+                amount: paymentAmount,
+              });
+              // Dodajemy osobę płacącą bez przecinka na początku
+              newPeople.add(payerName);
+              isComplexPayment = true;
+            }
           }
 
-          splitNames.forEach((name) => newPeople.add(name));
+          // Dla standardowej płatności dodaj osobę płacącą do kolekcji osób
+          if (!isComplexPayment) {
+            newPeople.add(paidBy);
+          }
+
+          // Przetwarzamy osoby, które składają się na wydatek
+          let splitNames: string[] = [];
+
+          // Najpierw sprawdź, czy mamy do czynienia z tekstem zawierającym nawiasy
+          if (splitBetweenStr.includes("(") && splitBetweenStr.includes(")")) {
+            // W przypadku tekstu z nawiasami, używamy bezpieczniejszej metody parsowania
+            const matches = splitBetweenStr.match(/[^(),]+(?:\([^)]*\))?/g);
+            if (matches) {
+              splitNames = matches
+                .map((name) => cleanPersonName(name))
+                .filter((name) => name.length > 0);
+            }
+          } else {
+            // Dla prostego tekstu bez nawiasów, rozdzielamy po przecinku lub pionowej kresce
+            splitNames = splitBetweenStr
+              .split(/,|\|/) // Rozdzielamy po przecinku lub znaku |
+              .map((name) => cleanPersonName(name))
+              .filter((name) => name.length > 0);
+          }
+
+          // Sprawdźmy, czy mamy brakujące osoby w splitNames
+          if (splitNames.length === 0) {
+            // Jeśli nie znaleziono osób dzielących wydatek, używamy wszystkich osób jako fallback
+            // ale najpierw wypisujemy ostrzeżenie
+            console.warn(
+              `Dla wydatku "${description}" nie znaleziono osób dzielących koszt. Używamy wszystkich osób jako fallback.`
+            );
+            splitNames = Array.from(newPeople);
+          }
+
+          // Upewnij się, że wszystkie osoby w splitNames są dodane do listy osób
+          splitNames.forEach((name) => {
+            if (name && name.length > 0) {
+              newPeople.add(name);
+            }
+          });
 
           // Tworzymy wydatek
-          importedExpenses.push({
-            id: uuidv4(),
-            description: description.trim() || "Brak opisu",
-            amount: amount,
-            paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
-            splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
-            importedData: {
-              paidByName: paidBy,
-              splitBetweenNames: splitNames,
-            },
-          });
+          if (isComplexPayment && detectedPayments.length > 0) {
+            // Tworzenie złożonego wydatku
+            importedExpenses.push({
+              id: uuidv4(),
+              description: description.trim() || "Brak opisu",
+              amount: amount,
+              paidBy: "", // Dla złożonej płatności to pole jest puste
+              splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
+              isComplexPayment: true,
+              importedData: {
+                paidByName: paidBy, // Zachowujemy oryginalny tekst dla parsowania późniejszego
+                splitBetweenNames: splitNames,
+              },
+            });
+          } else {
+            // Tworzenie standardowego wydatku
+            importedExpenses.push({
+              id: uuidv4(),
+              description: description.trim() || "Brak opisu",
+              amount: amount,
+              paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
+              splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
+              importedData: {
+                paidByName: paidBy,
+                splitBetweenNames: splitNames,
+              },
+            });
+          }
         }
       }
     }
@@ -256,95 +343,180 @@ export default function Home() {
 
     // Tworzymy nowe osoby - używamy setTimeout, aby dać oddech wątkowi UI
     setTimeout(() => {
-      finishProcessing(newPeople, importedExpenses);
+      finishProcessingImportedData(newPeople, importedExpenses);
     }, 0);
   };
 
-  // Funkcja kończąca przetwarzanie pliku
-  const finishProcessing = (
+  // Dokończenie przetwarzania danych importowanych z pliku
+  const finishProcessingImportedData = (
     newPeople: Set<string>,
     importedExpenses: Expense[]
   ) => {
-    // Tworzymy nowe osoby
-    const newPeopleArray: Person[] = Array.from(newPeople).map((name) => ({
-      id: uuidv4(),
-      name,
-    }));
+    // Funkcja do czyszczenia nazw - przycinamy białe znaki i usuwamy przecinki
+    const cleanPersonName = (name: string): string => {
+      let cleanName = name.trim();
+      while (cleanName.startsWith(",")) {
+        cleanName = cleanName.substring(1).trim();
+      }
+      while (cleanName.endsWith(",")) {
+        cleanName = cleanName.substring(0, cleanName.length - 1).trim();
+      }
+      return cleanName;
+    };
 
-    // Przygotowujemy mapę osób dla szybszego wyszukiwania (zamiast używać find)
-    const peopleMap = new Map<string, Person>();
-    newPeopleArray.forEach((person) => {
-      peopleMap.set(person.name, person);
+    // Przetwarzamy nazwy osób - przycinamy, usuwamy przecinki i deduplikujemy
+    const cleanedPeople = new Set<string>();
+    const nameVariants = new Map<string, string>(); // Mapa wariantów nazw do czystych nazw
+
+    Array.from(newPeople).forEach((name) => {
+      const cleanName = cleanPersonName(name);
+      if (cleanName.length > 0) {
+        cleanedPeople.add(cleanName);
+        // Zapisujemy oryginalną nazwę jako wariant czystej nazwy
+        nameVariants.set(name.toLowerCase(), cleanName);
+      }
     });
 
-    // Aktualizujemy wydatki z ID osób - używamy bardziej efektywnego podejścia z mapą
-    const processedExpenses = importedExpenses
-      .map((expense) => {
-        const paidByPerson = peopleMap.get(
-          expense.importedData?.paidByName || ""
-        );
+    // Tworzymy obiekty osób
+    const newPeopleArray: Person[] = Array.from(cleanedPeople).map((name) => ({
+      id: uuidv4(),
+      name: name,
+    }));
 
-        if (!paidByPerson) {
-          return null;
-        }
+    // Tworzymy mapę dla łatwego dostępu do ID osoby po jej nazwie
+    const peopleMap = new Map<string, string>();
+    newPeopleArray.forEach((person) => {
+      peopleMap.set(person.name.toLowerCase(), person.id);
+    });
 
-        const splitBetweenIds: string[] = [];
-        const splitNames = expense.importedData?.splitBetweenNames || [];
+    // Sprawdzamy istniejące osoby, aby uniknąć duplikatów
+    const existingPeopleMap = new Map<string, string>();
+    people.forEach((person) => {
+      existingPeopleMap.set(person.name.toLowerCase(), person.id);
+    });
 
-        for (const name of splitNames) {
-          const person = peopleMap.get(name as string);
-          if (person) {
-            splitBetweenIds.push(person.id);
+    // Filtrujemy nowe osoby, aby uniknąć duplikatów
+    const uniqueNewPeople = newPeopleArray.filter(
+      (person) => !existingPeopleMap.has(person.name.toLowerCase())
+    );
+
+    // Aktualizujemy wydatki z właściwymi ID osób
+    for (const expense of importedExpenses) {
+      const importedData = expense.importedData;
+      if (!importedData) continue;
+
+      if (expense.isComplexPayment) {
+        // Dla złożonych płatności, parsujemy dane aby wyciągnąć płatności
+        const payments: Payment[] = [];
+        const paymentPattern = /([^(]+)\s*\(([0-9.,]+)\s*zł\)/g;
+        let match;
+        const paymentText = cleanPersonName(importedData.paidByName);
+
+        while ((match = paymentPattern.exec(paymentText)) !== null) {
+          const payerName = cleanPersonName(match[1]);
+          const paymentAmount = parseFloat(match[2].replace(",", "."));
+
+          // Szukamy ID najpierw w nowych osobach, potem w istniejących
+          let payerId = peopleMap.get(payerName.toLowerCase());
+          if (!payerId) {
+            payerId = existingPeopleMap.get(payerName.toLowerCase());
+          }
+
+          if (payerId && !isNaN(paymentAmount) && paymentAmount > 0) {
+            payments.push({
+              personId: payerId,
+              amount: paymentAmount,
+            });
           }
         }
 
-        if (splitBetweenIds.length === 0) {
-          return null;
+        if (payments.length > 0) {
+          expense.payments = payments;
+        }
+      } else {
+        // Dla standardowych płatności
+        const payerName = cleanPersonName(importedData.paidByName);
+
+        // Szukamy ID najpierw w nowych osobach, potem w istniejących
+        let payerId = peopleMap.get(payerName.toLowerCase());
+        if (!payerId) {
+          payerId = existingPeopleMap.get(payerName.toLowerCase());
         }
 
-        // Usuwamy tymczasowe dane i zwracamy właściwy obiekt wydatku
-        return {
-          id: expense.id,
-          description: expense.description,
-          amount: expense.amount,
-          paidBy: paidByPerson.id,
-          splitBetween: splitBetweenIds,
-        };
-      })
-      .filter(
-        (expense): expense is Expense =>
-          expense !== null &&
-          Boolean(expense.paidBy) &&
-          expense.splitBetween.length > 0
-      );
+        if (payerId) {
+          expense.paidBy = payerId;
+        }
+      }
 
-    if (processedExpenses.length === 0) {
-      showToast(
-        "Nie znaleziono prawidłowych danych wydatków w pliku.",
-        "error"
-      );
-      return;
+      // Przetwarzamy listę osób pomiędzy którymi dzielony jest wydatek
+      const splitBetweenIds: string[] = [];
+      const processedNames = new Set<string>(); // Zbiór do śledzenia przetworzonych nazw
+
+      if (importedData.splitBetweenNames) {
+        for (const rawName of importedData.splitBetweenNames) {
+          // Czyścimy nazwę - przycinamy białe znaki i usuwamy przecinki
+          const cleanName = cleanPersonName(rawName);
+          if (!cleanName) continue;
+
+          const lowercaseName = cleanName.toLowerCase();
+
+          // Sprawdzamy czy imię już zostało przetworzone
+          if (processedNames.has(lowercaseName)) {
+            continue;
+          }
+
+          // Szukamy ID najpierw w nowych osobach, potem w istniejących
+          let personId = peopleMap.get(lowercaseName);
+          if (!personId) {
+            personId = existingPeopleMap.get(lowercaseName);
+          }
+
+          // Jeśli nie znaleziono, sprawdźmy czy to nie jest wariant nazwy
+          if (!personId && nameVariants.has(rawName.toLowerCase())) {
+            const cleanVariant = nameVariants.get(rawName.toLowerCase());
+            if (cleanVariant) {
+              personId = peopleMap.get(cleanVariant.toLowerCase());
+              if (!personId) {
+                personId = existingPeopleMap.get(cleanVariant.toLowerCase());
+              }
+            }
+          }
+
+          if (personId) {
+            splitBetweenIds.push(personId);
+            processedNames.add(lowercaseName);
+          }
+        }
+      }
+
+      if (splitBetweenIds.length > 0) {
+        expense.splitBetween = splitBetweenIds;
+      }
+
+      // Usuwamy niepotrzebne już dane importowane
+      delete expense.importedData;
     }
 
+    // Usuwamy wydatki z pustymi listami splitBetween
+    const validExpenses = importedExpenses.filter(
+      (expense) => expense.splitBetween.length > 0
+    );
+
     // Aktualizujemy stan aplikacji
-    setPeople(newPeopleArray);
-    setExpenses(processedExpenses);
+    setExpenses([...expenses, ...validExpenses]);
+    setPeople([...people, ...uniqueNewPeople]);
 
     // Obliczamy rozliczenia
-    calculateSettlements(processedExpenses);
+    calculateSettlements([...expenses, ...validExpenses]);
 
     // Przechodzimy do wyniku
     setStep("results");
 
-    // Pokazujemy ładny toast
     showToast(
-      `Zaimportowano ${processedExpenses.length} wydatków i ${newPeopleArray.length} osób!`,
+      `Zaimportowano ${validExpenses.length} wydatków i ${uniqueNewPeople.length} osób.`,
       "success"
     );
-
-    // Czyścimy dane z pamięci
-    (newPeople as any) = null;
-    (importedExpenses as any) = null;
+    setShowImportModal(false);
   };
 
   const importFromFile = () => {
@@ -388,12 +560,28 @@ export default function Home() {
     calculateSettlements([...expenses, newExpense]);
   };
 
-  const updateExpense = (updatedExpense: Expense) => {
+  const handleUpdateExpense = (updatedExpense: Expense) => {
+    // Sprawdzenie, czy to złożona płatność i aktualizacja kwoty
+    if (updatedExpense.isComplexPayment && updatedExpense.payments) {
+      const totalAmount = updatedExpense.payments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0
+      );
+      updatedExpense.amount = totalAmount;
+
+      // Dla złożonej płatności czyścimy pole paidBy, które nie jest używane
+      updatedExpense.paidBy = "";
+    }
+
     const updatedExpenses = expenses.map((expense) =>
       expense.id === updatedExpense.id ? updatedExpense : expense
     );
+
     setExpenses(updatedExpenses);
     calculateSettlements(updatedExpenses);
+    saveState(people, updatedExpenses);
+
+    showToast("Wydatek został zaktualizowany", "success");
   };
 
   const deleteExpense = (expenseId: string) => {
@@ -417,34 +605,99 @@ export default function Home() {
       return;
     }
 
-    // Logowanie dla celów debugowania
     console.log("Obliczanie rozliczeń dla wydatków:", currentExpenses);
-    console.log("Osoby:", people);
 
     // Obliczenie salda na podstawie wydatków
     currentExpenses.forEach((expense) => {
-      const paidBy = expense.paidBy;
-      const splitBetween = expense.splitBetween;
-      const amount = expense.amount;
+      console.log("Przetwarzanie wydatku w rozliczeniach:", expense);
 
-      // Sprawdź czy dane wydatku są poprawne
-      if (!paidBy || splitBetween.length === 0) {
-        console.warn("Nieprawidłowy wydatek:", expense);
-        return; // Pomijamy ten wydatek
+      // Obsługa złożonych płatności (gdzie płaci wiele osób)
+      if (
+        expense.isComplexPayment &&
+        expense.payments &&
+        expense.payments.length > 0
+      ) {
+        const splitBetween = expense.splitBetween;
+        const amount = expense.amount;
+
+        if (splitBetween.length === 0) {
+          console.warn(
+            "Nieprawidłowy wydatek złożony (brak osób dzielących):",
+            expense
+          );
+          return; // Pomijamy ten wydatek
+        }
+
+        const splitAmount = amount / splitBetween.length;
+        console.log(
+          `Kwota na osobę: ${splitAmount} (${amount} / ${splitBetween.length})`
+        );
+
+        // Dodaj odpowiednią kwotę każdej osobie, która zapłaciła
+        expense.payments.forEach((payment) => {
+          if (payment.personId && payment.amount > 0) {
+            balances[payment.personId] =
+              (balances[payment.personId] || 0) + payment.amount;
+            console.log(
+              `Dodaję ${payment.amount} do salda osoby ${payment.personId} (${
+                people.find((p) => p.id === payment.personId)?.name
+              })`
+            );
+          }
+        });
+
+        // Odejmij odpowiednią część od każdej osoby, która korzysta z wydatku
+        splitBetween.forEach((personId) => {
+          balances[personId] = (balances[personId] || 0) - splitAmount;
+          console.log(
+            `Odejmuję ${splitAmount} od salda osoby ${personId} (${
+              people.find((p) => p.id === personId)?.name
+            })`
+          );
+        });
       }
+      // Obsługa standardowych płatności (gdzie płaci jedna osoba)
+      else {
+        const paidBy = expense.paidBy;
+        const splitBetween = expense.splitBetween;
+        const amount = expense.amount;
 
-      const splitAmount = amount / splitBetween.length;
+        // Sprawdź czy dane wydatku są poprawne
+        if (!paidBy || splitBetween.length === 0) {
+          console.warn("Nieprawidłowy wydatek standardowy:", expense);
+          return; // Pomijamy ten wydatek
+        }
 
-      // Dodaj pełną kwotę osobie, która zapłaciła
-      balances[paidBy] = (balances[paidBy] || 0) + amount;
+        const splitAmount = amount / splitBetween.length;
+        console.log(
+          `Kwota na osobę: ${splitAmount} (${amount} / ${splitBetween.length})`
+        );
 
-      // Odejmij odpowiednią część od każdej osoby, która korzysta z wydatku
-      splitBetween.forEach((personId) => {
-        balances[personId] = (balances[personId] || 0) - splitAmount;
-      });
+        // Dodaj pełną kwotę osobie, która zapłaciła
+        balances[paidBy] = (balances[paidBy] || 0) + amount;
+        console.log(
+          `Dodaję ${amount} do salda osoby ${paidBy} (${
+            people.find((p) => p.id === paidBy)?.name
+          })`
+        );
+
+        // Odejmij odpowiednią część od każdej osoby, która korzysta z wydatku
+        splitBetween.forEach((personId) => {
+          balances[personId] = (balances[personId] || 0) - splitAmount;
+          console.log(
+            `Odejmuję ${splitAmount} od salda osoby ${personId} (${
+              people.find((p) => p.id === personId)?.name
+            })`
+          );
+        });
+      }
     });
 
     console.log("Obliczone salda:", balances);
+    console.log(
+      "Lista osób:",
+      people.map((p) => `${p.id}: ${p.name}`)
+    );
 
     // Zaokrąglamy wartości do 2 miejsc po przecinku, aby uniknąć błędów zaokrąglenia
     Object.keys(balances).forEach((key) => {
@@ -456,12 +709,12 @@ export default function Home() {
     // Algorytm rozliczeń
     const newSettlements: any[] = [];
     const debtors = Object.entries(balances)
-      .filter(([, balance]) => balance < -0.009) // Używamy trochę mniejszej wartości dla lepszej precyzji
-      .sort(([, a], [, b]) => a - b);
+      .filter(([, balance]) => balance < -0.009) // Filtrujemy osoby z ujemnym saldem (dłużnicy)
+      .sort(([, a], [, b]) => a - b); // Sortujemy od największego długu do najmniejszego
 
     const creditors = Object.entries(balances)
-      .filter(([, balance]) => balance > 0.009) // Używamy trochę mniejszej wartości dla lepszej precyzji
-      .sort(([, a], [, b]) => b - a);
+      .filter(([, balance]) => balance > 0.009) // Filtrujemy osoby z dodatnim saldem (wierzyciele)
+      .sort(([, a], [, b]) => b - a); // Sortujemy od największej wpłaty do najmniejszej
 
     console.log("Dłużnicy:", debtors);
     console.log("Wierzyciele:", creditors);
@@ -473,30 +726,49 @@ export default function Home() {
       const [debtorId, debtorBalance] = debtors[debtorIndex];
       const [creditorId, creditorBalance] = creditors[creditorIndex];
 
+      // Sprawdzamy czy dłużnik i wierzyciel nie są tą samą osobą
+      if (debtorId === creditorId) {
+        // Jeśli są tą samą osobą, przechodzimy do następnego dłużnika
+        debtorIndex++;
+        continue;
+      }
+
+      // Obliczamy kwotę transferu (minimalna z długu i wierzytelności)
       const amount = Math.min(-debtorBalance, creditorBalance);
 
       if (amount > 0.009) {
-        // Używamy trochę mniejszej wartości dla lepszej precyzji
-        // Dodaj tylko jeśli kwota jest znacząca
-        newSettlements.push({
+        // Jeśli kwota jest znacząca (większa niż zaokrąglenie)
+        // Dodajemy rozliczenie
+        const settlement = {
           from: debtorId,
           to: creditorId,
           amount: Math.round(amount * 100) / 100, // Zaokrąglamy do 2 miejsc po przecinku
-        });
+        };
+        newSettlements.push(settlement);
+        console.log(
+          `Rozliczenie: ${people.find((p) => p.id === debtorId)?.name} → ${
+            people.find((p) => p.id === creditorId)?.name
+          }: ${settlement.amount} zł`
+        );
       }
 
+      // Aktualizujemy salda po tym transferze
       const newDebtorBalance = debtorBalance + amount;
       const newCreditorBalance = creditorBalance - amount;
 
+      // Sprawdzamy czy dłużnik został rozliczony (jego saldo jest bliskie zeru)
       if (Math.abs(newDebtorBalance) < 0.009) {
-        debtorIndex++;
+        debtorIndex++; // Przechodzimy do następnego dłużnika
       } else {
+        // Aktualizujemy saldo dłużnika
         debtors[debtorIndex] = [debtorId, newDebtorBalance];
       }
 
+      // Sprawdzamy czy wierzyciel został rozliczony (jego saldo jest bliskie zeru)
       if (Math.abs(newCreditorBalance) < 0.009) {
-        creditorIndex++;
+        creditorIndex++; // Przechodzimy do następnego wierzyciela
       } else {
+        // Aktualizujemy saldo wierzyciela
         creditors[creditorIndex] = [creditorId, newCreditorBalance];
       }
     }
@@ -508,7 +780,9 @@ export default function Home() {
   const exportToCSV = () => {
     try {
       // Przygotuj dane do eksportu z rozszerzeniem csv (lepiej obsługiwane niż xlsx)
-      const filename = "OddajHajs_rozliczenie.csv";
+      const today = new Date();
+      const dateStr = today.toISOString().split("T")[0]; // Format YYYY-MM-DD
+      const filename = `OddajHajs_rozliczenie_${dateStr}.csv`;
 
       // Utwórz zawartość pliku CSV z separatorem średnika dla Excel
       let csvContent = "";
@@ -535,14 +809,36 @@ export default function Home() {
 
       // Dane wydatków
       expenses.forEach((expense) => {
-        const paidByName =
-          people.find((p) => p.id === expense.paidBy)?.name || expense.paidBy;
-        const splitBetweenNames = expense.splitBetween
-          .map((id) => people.find((p) => p.id === id)?.name || id)
-          .join(", ");
-        csvContent += `${expense.description};${expense.amount.toFixed(
-          2
-        )};${paidByName};${splitBetweenNames}\r\n`;
+        // Obsługa złożonych płatności
+        if (expense.isComplexPayment && expense.payments) {
+          const payersList = expense.payments
+            .map((payment) => {
+              const name =
+                people.find((p) => p.id === payment.personId)?.name ||
+                payment.personId;
+              return `${name} (${payment.amount.toFixed(2)} zł)`;
+            })
+            .join(", ");
+
+          const splitBetweenNames = expense.splitBetween
+            .map((id) => people.find((p) => p.id === id)?.name || id)
+            .join(", ");
+
+          csvContent += `${expense.description};${expense.amount.toFixed(
+            2
+          )};${payersList};${splitBetweenNames}\r\n`;
+        }
+        // Obsługa standardowych płatności
+        else {
+          const paidByName =
+            people.find((p) => p.id === expense.paidBy)?.name || expense.paidBy;
+          const splitBetweenNames = expense.splitBetween
+            .map((id) => people.find((p) => p.id === id)?.name || id)
+            .join(", ");
+          csvContent += `${expense.description};${expense.amount.toFixed(
+            2
+          )};${paidByName};${splitBetweenNames}\r\n`;
+        }
       });
 
       // Kodowanie znaków i przygotowanie pliku
@@ -584,21 +880,37 @@ export default function Home() {
     setStep("people");
   };
 
-  // Funkcja do pokazywania komunikatu toast
-  const showToast = (
-    message: string,
-    type: "success" | "error" = "success"
-  ) => {
-    setToast({ message, visible: true, type });
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({
+      message,
+      visible: true,
+      type,
+    });
+
+    // Automatycznie ukrywamy toast po 5 sekundach
     setTimeout(() => {
-      setToast((prev) => ({ ...prev, visible: false }));
-    }, 7000); // Toast zniknie po 7 sekundach
+      setToast((prev) => ({
+        ...prev,
+        visible: false,
+      }));
+    }, 5000);
   };
 
-  // Funkcja zamykająca popup i zapisująca informację do localStorage
   const handleCloseIntroPopup = () => {
     setShowIntroPopup(false);
     localStorage.setItem("oddajhajs_seen_intro", "true");
+  };
+
+  const saveState = (currentPeople: Person[], currentExpenses: Expense[]) => {
+    try {
+      localStorage.setItem("oddajhajs_people", JSON.stringify(currentPeople));
+      localStorage.setItem(
+        "oddajhajs_expenses",
+        JSON.stringify(currentExpenses)
+      );
+    } catch (error) {
+      console.error("Błąd podczas zapisywania stanu:", error);
+    }
   };
 
   return (
@@ -794,7 +1106,7 @@ export default function Home() {
               expenses={expenses}
               settlements={settlements}
               onAddExpense={addExpense}
-              onUpdateExpense={updateExpense}
+              onUpdateExpense={handleUpdateExpense}
               onDeleteExpense={deleteExpense}
               onExport={exportToCSV}
               showToast={showToast}

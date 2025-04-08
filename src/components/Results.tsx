@@ -21,6 +21,12 @@ import {
   FaEnvelope,
   FaShareAlt,
   FaGoogle,
+  FaUniversity,
+  FaPiggyBank,
+  FaMoneyBillWave,
+  FaCreditCard,
+  FaCoins,
+  FaPlus,
 } from "react-icons/fa";
 
 interface Person {
@@ -47,9 +53,7 @@ export default function Results({
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
-  const [calculatorTarget, setCalculatorTarget] = useState<"main" | "edit">(
-    "main"
-  );
+  const [calculatorTarget, setCalculatorTarget] = useState<string>("main");
   const [showShareOptions, setShowShareOptions] = useState(false);
 
   const getPersonName = (id: string) => {
@@ -57,17 +61,97 @@ export default function Results({
   };
 
   const handleUpdateExpense = (updatedExpense: Expense) => {
+    // Walidacja dla złożonych płatności
+    if (updatedExpense.isComplexPayment && updatedExpense.payments) {
+      // Sprawdzamy, czy wszystkie płatności mają uzupełnione dane
+      const invalidPayments = updatedExpense.payments.some(
+        (p) => !p.personId || p.amount <= 0
+      );
+      if (invalidPayments) {
+        showToast &&
+          showToast("Uzupełnij wszystkie dane płatności złożonej", "error");
+        return;
+      }
+
+      // Sprawdzamy, czy suma płatności jest większa od zera
+      const totalPayments = updatedExpense.payments.reduce(
+        (sum, p) => sum + p.amount,
+        0
+      );
+      if (totalPayments <= 0) {
+        showToast &&
+          showToast("Suma płatności musi być większa od zera", "error");
+        return;
+      }
+
+      // Aktualizujemy kwotę wydatku na podstawie sumy płatności
+      updatedExpense.amount = totalPayments;
+    } else if (!updatedExpense.isComplexPayment) {
+      // Walidacja dla standardowej płatności
+      if (!updatedExpense.paidBy) {
+        showToast && showToast("Wybierz kto zapłacił", "error");
+        return;
+      }
+
+      if (updatedExpense.amount <= 0) {
+        showToast && showToast("Kwota musi być większa od zera", "error");
+        return;
+      }
+    }
+
+    // Sprawdzamy, czy ktokolwiek się składa na wydatek
+    if (updatedExpense.splitBetween.length === 0) {
+      showToast && showToast("Wybierz kto się składa na ten wydatek", "error");
+      return;
+    }
+
     onUpdateExpense(updatedExpense);
     setEditingExpense(null);
   };
 
   const handleCalculatorResult = (result: string) => {
-    if (calculatorTarget === "edit" && editingExpense) {
-      setEditingExpense({
-        ...editingExpense,
-        amount: parseFloat(result),
-      });
+    if (!result) return;
+
+    const numericResult = parseFloat(result);
+    if (isNaN(numericResult)) return;
+
+    if (calculatorTarget === "main") {
+      // Główny kalkulator dla całego formularza
+      if (editingExpense) {
+        setEditingExpense({
+          ...editingExpense,
+          amount: numericResult,
+        });
+      }
+    } else if (calculatorTarget === "edit") {
+      // Kalkulator dla pola kwoty w standardowej płatności
+      if (editingExpense) {
+        setEditingExpense({
+          ...editingExpense,
+          amount: numericResult,
+        });
+      }
+    } else if (calculatorTarget.startsWith("payment_")) {
+      // Format: "payment_X" gdzie X to indeks w tablicy payments
+      const paymentIndex = parseInt(calculatorTarget.split("_")[1], 10);
+      if (
+        !isNaN(paymentIndex) &&
+        editingExpense?.payments &&
+        paymentIndex < editingExpense.payments.length
+      ) {
+        const updatedPayments = [...editingExpense.payments];
+        updatedPayments[paymentIndex] = {
+          ...updatedPayments[paymentIndex],
+          amount: numericResult,
+        };
+
+        setEditingExpense({
+          ...editingExpense,
+          payments: updatedPayments,
+        });
+      }
     }
+
     setShowCalculator(false);
   };
 
@@ -83,7 +167,10 @@ export default function Results({
 
   // Funkcja generująca tekst do udostępnienia
   const generateShareText = () => {
-    let text = "Rozliczenie z wyjazdu/imprezy:\n\n";
+    const today = new Date();
+    const dateStr = today.toLocaleDateString(); // Format lokalny daty
+
+    let text = `Rozliczenie z wyjazdu/imprezy (${dateStr}):\n\n`;
 
     if (settlements.length === 0) {
       text += "Wszyscy kwita! Nikt nikomu nic nie musi oddawać. 👍";
@@ -151,6 +238,32 @@ export default function Results({
       "_blank"
     );
     setShowShareOptions(false);
+  };
+
+  const handleEditClick = (expense: Expense) => {
+    // Przekształcamy standardową płatność na złożoną, jeśli to konieczne
+    const editExpense = { ...expense };
+
+    if (editExpense.isComplexPayment && !editExpense.payments) {
+      // W przypadku braku danych o płatnościach, inicjalizuj puste
+      editExpense.payments = [];
+    } else if (!editExpense.isComplexPayment && editExpense.paidBy) {
+      // Zawsze inicjalizujemy tablicę payments nawet dla standardowej płatności
+      // żeby można było przełączyć na złożoną płatność podczas edycji
+      editExpense.payments = [
+        {
+          personId: editExpense.paidBy,
+          amount: editExpense.amount,
+        },
+      ];
+    }
+
+    // Upewnij się, że zawsze jest przynajmniej jedna płatność
+    if (!editExpense.payments || editExpense.payments.length === 0) {
+      editExpense.payments = [{ personId: "", amount: 0 }];
+    }
+
+    setEditingExpense(editExpense);
   };
 
   return (
@@ -288,7 +401,58 @@ export default function Results({
                       {getPersonName(settlement.to)}
                     </td>
                     <td className="py-3 px-2 text-right text-white font-medium">
-                      {settlement.amount.toFixed(2)} zł
+                      <div className="flex flex-col items-end">
+                        <span>{settlement.amount.toFixed(2)} zł</span>
+                        {/* Tymczasowo ukryte ikony banków
+                        <div className="flex mt-1 space-x-2">
+                          <a
+                            href="https://www.pkobp.pl/klient-indywidualny/aplikacja-iko-ipko/aplikacja-mobilna-iko"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="PKO BP - IKO"
+                            className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-colors"
+                          >
+                            <FaUniversity size={12} />
+                          </a>
+                          <a
+                            href="https://www.mbank.pl/indywidualny/aplikacja-i-serwis/o-aplikacji/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="mBank"
+                            className="flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full hover:bg-red-500 transition-colors"
+                          >
+                            <FaMoneyBillWave size={12} />
+                          </a>
+                          <a
+                            href="https://www.santander.pl/klient-indywidualny/bankowosc-internetowa/santander-mobile?santag-camp=advnav-baner_OneAppLaunch_0923"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Santander"
+                            className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-400 transition-colors"
+                          >
+                            <FaPiggyBank size={12} />
+                          </a>
+                          <a
+                            href="https://www.ing.pl/indywidualni/aplikacja-mobilna"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="ING"
+                            className="flex items-center justify-center w-6 h-6 bg-orange-500 text-white rounded-full hover:bg-orange-400 transition-colors"
+                          >
+                            <FaCreditCard size={12} />
+                          </a>
+                          <a
+                            href="https://www.pekao.com.pl/klient-indywidualny/bankowosc-elektroniczna/Peopay.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Pekao - PeoPay"
+                            className="flex items-center justify-center w-6 h-6 bg-red-700 text-white rounded-full hover:bg-red-600 transition-colors"
+                          >
+                            <FaCoins size={12} />
+                          </a>
+                        </div>
+                        */}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -351,60 +515,288 @@ export default function Results({
                       className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                       placeholder="Co to za wydatek?"
                     />
-                    <div className="flex gap-4">
-                      <div className="relative w-1/2">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={editingExpense.amount}
-                          onChange={(e) => {
-                            const re = /^[0-9]*[.]?[0-9]*$/;
+
+                    <div className="flex items-center mb-2">
+                      <input
+                        id="complex-payment-edit"
+                        type="checkbox"
+                        checked={editingExpense.isComplexPayment}
+                        onChange={() => {
+                          if (!editingExpense.isComplexPayment) {
+                            // Przełączamy z prostej na złożoną
+                            let payments = editingExpense.payments || [];
                             if (
-                              e.target.value === "" ||
-                              re.test(e.target.value)
+                              editingExpense.paidBy &&
+                              payments.length === 0
                             ) {
+                              // Tworzymy płatność na podstawie standardowej
+                              payments = [
+                                {
+                                  personId: editingExpense.paidBy,
+                                  amount: editingExpense.amount,
+                                },
+                              ];
+                            }
+                            setEditingExpense({
+                              ...editingExpense,
+                              isComplexPayment: true,
+                              payments: payments.length
+                                ? payments
+                                : [{ personId: "", amount: 0 }],
+                              paidBy: "", // Czyścimy pole paidBy dla złożonej płatności
+                            });
+                          } else {
+                            // Przełączamy ze złożonej na prostą
+                            const firstPayment = editingExpense.payments?.[0];
+                            setEditingExpense({
+                              ...editingExpense,
+                              isComplexPayment: false,
+                              paidBy: firstPayment?.personId || "", // Używamy pierwszej płatności jako paidBy
+                              amount: firstPayment?.amount || 0, // Używamy kwoty pierwszej płatności
+                            });
+                          }
+                        }}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded dark:bg-gray-700 dark:border-gray-600 mr-2"
+                      />
+                      <label
+                        htmlFor="complex-payment-edit"
+                        className="text-sm font-medium text-gray-300"
+                      >
+                        Płatność złożona (kilka osób płaci różne kwoty)
+                      </label>
+                    </div>
+
+                    {editingExpense.isComplexPayment ? (
+                      // Edycja złożonej płatności
+                      <div className="space-y-4">
+                        <div className="text-sm font-medium text-gray-300 mb-1">
+                          Płatności:
+                        </div>
+                        {editingExpense.payments?.map((payment, index) => (
+                          <div key={index} className="flex gap-4 items-center">
+                            <select
+                              value={payment.personId}
+                              onChange={(e) => {
+                                const newPayments = [
+                                  ...(editingExpense.payments || []),
+                                ];
+                                newPayments[index] = {
+                                  ...newPayments[index],
+                                  personId: e.target.value,
+                                };
+                                setEditingExpense({
+                                  ...editingExpense,
+                                  payments: newPayments,
+                                });
+                              }}
+                              className="w-1/2 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value="">Wybierz osobę</option>
+                              {people.map((person) => {
+                                const isSelected =
+                                  editingExpense.payments?.some(
+                                    (p, i) =>
+                                      i !== index && p.personId === person.id
+                                  );
+                                return (
+                                  <option
+                                    key={person.id}
+                                    value={person.id}
+                                    disabled={
+                                      isSelected &&
+                                      person.id !== payment.personId
+                                    }
+                                  >
+                                    {person.name}{" "}
+                                    {isSelected &&
+                                    person.id !== payment.personId
+                                      ? "(już wybrany)"
+                                      : ""}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                            <div className="relative w-1/2">
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={payment.amount || ""}
+                                onChange={(e) => {
+                                  const re = /^[0-9]*[.]?[0-9]*$/;
+                                  if (
+                                    e.target.value === "" ||
+                                    re.test(e.target.value)
+                                  ) {
+                                    const newPayments = [
+                                      ...(editingExpense.payments || []),
+                                    ];
+                                    newPayments[index] = {
+                                      ...newPayments[index],
+                                      amount: e.target.value
+                                        ? parseFloat(e.target.value)
+                                        : 0,
+                                    };
+                                    setEditingExpense({
+                                      ...editingExpense,
+                                      payments: newPayments,
+                                    });
+                                  }
+                                }}
+                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white pr-16"
+                                placeholder="0.00"
+                              />
+                              <div className="absolute inset-y-0 right-0 flex items-center">
+                                <span className="text-gray-400 pr-2">zł</span>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCalculatorTarget(`payment_${index}`);
+                                    setShowCalculator(true);
+                                  }}
+                                  className="pr-3 text-gray-400 hover:text-blue-400 transition-colors"
+                                >
+                                  <FaCalculator className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  (editingExpense.payments?.length || 0) > 1
+                                ) {
+                                  const newPayments = [
+                                    ...(editingExpense.payments || []),
+                                  ];
+                                  newPayments.splice(index, 1);
+                                  setEditingExpense({
+                                    ...editingExpense,
+                                    payments: newPayments,
+                                  });
+                                }
+                              }}
+                              className="p-2 text-red-400 hover:text-red-300"
+                              disabled={
+                                (editingExpense.payments?.length || 0) <= 1
+                              }
+                            >
+                              <FaTimes className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const availablePeople = people.filter(
+                              (person) =>
+                                !(editingExpense.payments || []).some(
+                                  (p) => p.personId === person.id
+                                )
+                            );
+
+                            if (availablePeople.length > 0) {
                               setEditingExpense({
                                 ...editingExpense,
-                                amount: e.target.value
-                                  ? parseFloat(e.target.value)
-                                  : 0,
+                                payments: [
+                                  ...(editingExpense.payments || []),
+                                  {
+                                    personId: availablePeople[0].id, // Automatycznie wybierz pierwszą dostępną osobę
+                                    amount: 0,
+                                  },
+                                ],
                               });
+                            } else {
+                              showToast &&
+                                showToast(
+                                  "Wszystkie osoby mają już przypisane płatności",
+                                  "error"
+                                );
                             }
                           }}
-                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white pr-16"
-                          placeholder="Ile hajsu?"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center">
-                          <span className="text-gray-400 pr-2">zł</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCalculatorTarget("edit");
-                              setShowCalculator(true);
-                            }}
-                            className="pr-3 text-gray-400 hover:text-blue-400 transition-colors"
-                          >
-                            <FaCalculator className="w-4 h-4" />
-                          </button>
+                          disabled={
+                            people.length <=
+                            (editingExpense.payments?.length || 0)
+                          }
+                          className={`px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1 ${
+                            people.length <=
+                            (editingExpense.payments?.length || 0)
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                        >
+                          <FaPlus className="w-3 h-3" /> Dodaj płatność
+                        </button>
+
+                        <div className="text-right text-sm text-gray-300">
+                          Suma płatności:{" "}
+                          {editingExpense.payments
+                            ?.reduce((sum, p) => sum + (p.amount || 0), 0)
+                            .toFixed(2)}{" "}
+                          zł
                         </div>
                       </div>
-                      <select
-                        value={editingExpense.paidBy}
-                        onChange={(e) =>
-                          setEditingExpense({
-                            ...editingExpense,
-                            paidBy: e.target.value,
-                          })
-                        }
-                        className="w-1/2 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                      >
-                        {people.map((person) => (
-                          <option key={person.id} value={person.id}>
-                            {person.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    ) : (
+                      // Edycja standardowej płatności
+                      <div className="flex gap-4">
+                        <div className="relative w-1/2">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={editingExpense.amount || ""}
+                            onChange={(e) => {
+                              const re = /^[0-9]*[.]?[0-9]*$/;
+                              if (
+                                e.target.value === "" ||
+                                re.test(e.target.value)
+                              ) {
+                                setEditingExpense({
+                                  ...editingExpense,
+                                  amount: e.target.value
+                                    ? parseFloat(e.target.value)
+                                    : 0,
+                                });
+                              }
+                            }}
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white pr-16"
+                            placeholder="Ile hajsu?"
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center">
+                            <span className="text-gray-400 pr-2">zł</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCalculatorTarget("edit");
+                                setShowCalculator(true);
+                              }}
+                              className="pr-3 text-gray-400 hover:text-blue-400 transition-colors"
+                            >
+                              <FaCalculator className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <select
+                          value={editingExpense.paidBy}
+                          onChange={(e) =>
+                            setEditingExpense({
+                              ...editingExpense,
+                              paidBy: e.target.value,
+                            })
+                          }
+                          className="w-1/2 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                        >
+                          <option value="">Wybierz kto zapłacił</option>
+                          {people.map((person) => (
+                            <option key={person.id} value={person.id}>
+                              {person.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-300">
                         Kto się składa?
@@ -459,10 +851,35 @@ export default function Results({
                       <h3 className="font-semibold text-white">
                         {expense.description}
                       </h3>
-                      <p className="text-gray-400">
-                        {expense.amount.toFixed(2)} zł - wyciągnął hajs{" "}
-                        {people.find((p) => p.id === expense.paidBy)?.name}
-                      </p>
+                      {expense.isComplexPayment ? (
+                        // Wyświetlanie złożonej płatności
+                        <div>
+                          <p className="text-gray-400">
+                            {expense.amount.toFixed(2)} zł - płatność złożona
+                          </p>
+                          <div className="text-sm text-gray-500">
+                            <p>Wpłacający:</p>
+                            <ul className="list-disc ml-5">
+                              {expense.payments?.map((payment, idx) => (
+                                <li key={idx}>
+                                  {
+                                    people.find(
+                                      (p) => p.id === payment.personId
+                                    )?.name
+                                  }
+                                  : {payment.amount.toFixed(2)} zł
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      ) : (
+                        // Wyświetlanie standardowej płatności
+                        <p className="text-gray-400">
+                          {expense.amount.toFixed(2)} zł - wyciągnął hajs{" "}
+                          {people.find((p) => p.id === expense.paidBy)?.name}
+                        </p>
+                      )}
                       <p className="text-sm text-gray-500">
                         Składają się:{" "}
                         {expense.splitBetween
@@ -472,7 +889,9 @@ export default function Results({
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setEditingExpense(expense)}
+                        onClick={() => {
+                          handleEditClick(expense);
+                        }}
                         className="p-2 text-blue-400 hover:text-blue-300"
                         title="Edytuj"
                       >
