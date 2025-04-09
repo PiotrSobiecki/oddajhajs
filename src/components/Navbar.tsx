@@ -18,7 +18,8 @@ export default function Navbar({
 
   return (
     <>
-      <nav className="bg-gray-800 shadow-md">
+      <nav className="relative">
+        <div className="absolute inset-0 bg-gray-800/10 backdrop-blur-sm -z-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -105,7 +106,7 @@ export default function Navbar({
         </div>
 
         {isMobileMenuOpen && (
-          <div className="sm:hidden">
+          <div className="sm:hidden backdrop-blur-sm bg-gray-800/10">
             <div className="pt-2 pb-3 space-y-1">
               <button
                 onClick={() => {

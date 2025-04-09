@@ -911,19 +911,21 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-      <Navbar
-        currentStep={step}
-        onReset={() => {
-          setStep("people");
-          setPeople([]);
-          setExpenses([]);
-          setSettlements([]);
-        }}
-        onShowInstructions={handleShowInstructions}
-        onShowCalculator={handleShowCalculator}
-      />
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-md">
+        <Navbar
+          currentStep={step}
+          onReset={() => {
+            setStep("people");
+            setPeople([]);
+            setExpenses([]);
+            setSettlements([]);
+          }}
+          onShowInstructions={handleShowInstructions}
+          onShowCalculator={handleShowCalculator}
+        />
+      </div>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl flex-grow">
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex-grow mt-16">
         {step === "people" && (
           <div className="space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
