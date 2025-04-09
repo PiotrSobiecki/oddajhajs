@@ -285,42 +285,47 @@ export default function ExpenseForm({
 
           <div className="space-y-3 mt-2">
             {payments.map((payment, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <select
-                  value={payment.personId}
-                  onChange={(e) =>
-                    updatePayment(index, "personId", e.target.value)
-                  }
-                  className="flex-1 p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  <option value="" disabled>
-                    -- Kto płacił? --
-                  </option>
-                  {people.map((person) => {
-                    // Sprawdź czy osoba jest już wybrana w innej płatności
-                    const isAlreadySelected = payments.some(
-                      (p, i) => i !== index && p.personId === person.id
-                    );
+              <div
+                key={index}
+                className="md:flex md:gap-2 md:items-center grid grid-cols-1 gap-2"
+              >
+                <div className="md:flex-1 w-full">
+                  <select
+                    value={payment.personId}
+                    onChange={(e) =>
+                      updatePayment(index, "personId", e.target.value)
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm truncate"
+                  >
+                    <option value="" disabled>
+                      -- Kto płacił? --
+                    </option>
+                    {people.map((person) => {
+                      // Sprawdź czy osoba jest już wybrana w innej płatności
+                      const isAlreadySelected = payments.some(
+                        (p, i) => i !== index && p.personId === person.id
+                      );
 
-                    return (
-                      <option
-                        key={person.id}
-                        value={person.id}
-                        disabled={isAlreadySelected}
-                        className={
-                          isAlreadySelected
-                            ? "text-gray-400 dark:text-gray-600"
-                            : ""
-                        }
-                      >
-                        {person.name}
-                        {isAlreadySelected ? " (już wybrany)" : ""}
-                      </option>
-                    );
-                  })}
-                </select>
+                      return (
+                        <option
+                          key={person.id}
+                          value={person.id}
+                          disabled={isAlreadySelected}
+                          className={
+                            isAlreadySelected
+                              ? "text-gray-400 dark:text-gray-600"
+                              : ""
+                          }
+                        >
+                          {person.name}
+                          {isAlreadySelected ? " (już wybr.)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
 
-                <div className="relative rounded-md shadow-sm flex-1">
+                <div className="relative rounded-md shadow-sm md:flex-1 w-full">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -335,11 +340,11 @@ export default function ExpenseForm({
                         );
                       }
                     }}
-                    className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-16"
+                    className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10"
                     placeholder="0.00"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center">
-                    <span className="text-gray-500 dark:text-gray-400 pr-2">
+                    <span className="text-gray-500 dark:text-gray-400 pr-2 text-sm">
                       zł
                     </span>
                     <button
@@ -351,19 +356,21 @@ export default function ExpenseForm({
                       }}
                       className="pr-2 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                     >
-                      <FaCalculator className="w-4 h-4" />
+                      <FaCalculator className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => removePaymentField(index)}
-                  className="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  disabled={payments.length <= 1}
-                >
-                  <FaMinus className="w-4 h-4" />
-                </button>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removePaymentField(index)}
+                    className="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    disabled={payments.length <= 1}
+                  >
+                    <FaMinus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

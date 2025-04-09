@@ -1068,10 +1068,34 @@ export default function Home() {
                           <h3 className="font-semibold">
                             {expense.description}
                           </h3>
-                          <p>
-                            {expense.amount.toFixed(2)} zł - zapłacił(a){" "}
-                            {people.find((p) => p.id === expense.paidBy)?.name}
-                          </p>
+                          {expense.isComplexPayment && expense.payments ? (
+                            <>
+                              <p>
+                                {expense.amount.toFixed(2)} zł - zapłaciło kilka
+                                osób:
+                              </p>
+                              <ul className="ml-4 text-sm">
+                                {expense.payments.map((payment, idx) => (
+                                  <li key={idx}>
+                                    {
+                                      people.find(
+                                        (p) => p.id === payment.personId
+                                      )?.name
+                                    }
+                                    : {payment.amount.toFixed(2)} zł
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          ) : (
+                            <p>
+                              {expense.amount.toFixed(2)} zł - zapłacił(a){" "}
+                              {
+                                people.find((p) => p.id === expense.paidBy)
+                                  ?.name
+                              }
+                            </p>
+                          )}
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Dzielone między:{" "}
                             {expense.splitBetween
