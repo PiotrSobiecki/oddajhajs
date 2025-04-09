@@ -876,7 +876,7 @@ export default function Results({
                       ) : (
                         // Wyświetlanie standardowej płatności
                         <p className="text-gray-400">
-                          {expense.amount.toFixed(2)} zł - wyciągnął hajs{" "}
+                          {expense.amount.toFixed(2)} zł - wyciągnął (eła) hajs{" "}
                           {people.find((p) => p.id === expense.paidBy)?.name}
                         </p>
                       )}

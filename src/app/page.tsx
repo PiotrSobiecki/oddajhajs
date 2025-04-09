@@ -190,158 +190,152 @@ export default function Home() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Sprawdzamy nagłówki sekcji
-      if (line.startsWith("Wydatki:") || line.includes("Wydatki:")) {
+      // Sprawdzamy nagłówki sekcji - teraz bardziej elastyczne sprawdzanie
+      if (
+        line.toLowerCase().replace(/[:\s]/g, "").includes("wydatki") ||
+        i === 0
+      ) {
         currentSection = "expenses";
         foundExpenses = true;
         continue;
       }
 
       if (currentSection === "expenses" && i > 0) {
-        // Pomijamy wiersz nagłówka
-        if (line.includes("Opis;Kwota;") || line.includes("Opis,Kwota,")) {
+        // Pomijamy wiersz nagłówka jeśli zawiera typowe słowa nagłówkowe
+        if (
+          line.toLowerCase().includes("opis") ||
+          line.toLowerCase().includes("kwota") ||
+          line.toLowerCase().includes("zapłacone") ||
+          line.toLowerCase().includes("dzielone")
+        ) {
           continue;
         }
 
-        // Sprawdzamy czy linia ma separator CSV
+        // Sprawdzamy czy linia ma separator CSV i parsujemy z uwzględnieniem przecinków w nawiasach
         let parts: string[];
-        const useSemicolon = line.includes(";");
-        if (useSemicolon) {
-          parts = line.split(";");
-        } else if (line.includes(",")) {
-          parts = line.split(",");
+        if (line.includes(";")) {
+          // Użyj wyrażenia regularnego do podziału z zachowaniem przecinków w nawiasach
+          parts = line.match(/(?:[^;"]|"[^"]*")+/g) || [];
         } else {
-          continue;
+          // Dla przecinków jako separatorów, musimy zachować przecinki w nawiasach
+          let inParentheses = false;
+          let currentPart = "";
+          let tempParts = [];
+
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === "(") {
+              inParentheses = true;
+              currentPart += char;
+            } else if (char === ")") {
+              inParentheses = false;
+              currentPart += char;
+            } else if (char === "," && !inParentheses) {
+              tempParts.push(currentPart.trim());
+              currentPart = "";
+            } else {
+              currentPart += char;
+            }
+          }
+          if (currentPart) {
+            tempParts.push(currentPart.trim());
+          }
+          parts = tempParts;
         }
 
         if (parts.length >= 4) {
-          const [description, amountStr, paidByName, splitBetweenStr] = parts;
+          const [description, amountStr, paidByStr, splitBetweenStr] =
+            parts.map(
+              (p) => p.trim().replace(/^"|"$/g, "") // Usuń cudzysłowy z początku i końca
+            );
 
-          // Próbujemy skonwertować kwotę na liczbę
-          let amount: number;
-          try {
-            amount = parseFloat(amountStr.replace(",", ".").trim());
-            if (isNaN(amount) || amount <= 0) {
-              continue;
+          // Parsowanie kwoty - usuwamy cudzysłowy jeśli są
+          const cleanAmountStr = amountStr.replace(/"/g, "").trim();
+          let amount = parseFloat(cleanAmountStr.replace(",", "."));
+
+          if (isNaN(amount) || amount <= 0) {
+            console.warn(`Nieprawidłowa kwota w linii: ${line}`);
+            continue;
+          }
+
+          // Sprawdzamy czy mamy do czynienia ze złożoną płatnością
+          const isComplexPayment =
+            paidByStr.includes("(") && paidByStr.includes(")");
+
+          if (isComplexPayment) {
+            // Parsowanie złożonej płatności
+            const paymentPattern = /([^(]+)\s*\((\d+(?:[.,]\d+)?)\s*(?:zł)?\)/g;
+            const payments: { name: string; amount: number }[] = [];
+            let match;
+
+            const cleanPaidByStr = cleanPersonName(paidByStr);
+            while ((match = paymentPattern.exec(cleanPaidByStr)) !== null) {
+              const payerName = cleanPersonName(match[1]);
+              const paymentAmount = parseFloat(match[2].replace(",", "."));
+
+              if (!isNaN(paymentAmount) && paymentAmount > 0) {
+                payments.push({
+                  name: payerName,
+                  amount: paymentAmount,
+                });
+                newPeople.add(payerName);
+              }
             }
-          } catch (e) {
-            continue;
-          }
 
-          const paidBy = cleanPersonName(paidByName);
-          if (!paidBy) {
-            continue;
-          }
-
-          // Sprawdzamy czy w paidBy jest format złożonej płatności (np. "kocu (50.00 zł), cybul (20.00 zł)")
-          const paymentPattern = /([^(]+)\s*\(([0-9.,]+)\s*zł\)/g;
-          let match;
-          let isComplexPayment = false;
-          const detectedPayments: { name: string; amount: number }[] = [];
-
-          // Ponownie używamy oczyszczonego paidBy jako źródła do dopasowania
-          const cleanedPaidBy = cleanPersonName(paidBy);
-          const paymentText = cleanedPaidBy;
-
-          while ((match = paymentPattern.exec(paymentText)) !== null) {
-            const payerName = cleanPersonName(match[1]);
-            const paymentAmount = parseFloat(match[2].replace(",", "."));
-
-            if (!isNaN(paymentAmount) && paymentAmount > 0) {
-              detectedPayments.push({
-                name: payerName,
-                amount: paymentAmount,
+            if (payments.length > 0) {
+              // Dodajemy wydatek złożony
+              importedExpenses.push({
+                id: crypto.randomUUID(),
+                description: description.trim(),
+                amount: amount,
+                paidBy: "", // Dla złożonej płatności to pole jest puste
+                splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
+                isComplexPayment: true,
+                importedData: {
+                  paidByName: paidByStr,
+                  splitBetweenNames: splitBetweenStr
+                    .split(/[,;]/)
+                    .map((name) => cleanPersonName(name)),
+                },
               });
-              // Dodajemy osobę płacącą bez przecinka na początku
-              newPeople.add(payerName);
-              isComplexPayment = true;
             }
-          }
+          } else {
+            // Standardowa płatność
+            const paidBy = cleanPersonName(paidByStr);
+            if (paidBy) {
+              newPeople.add(paidBy);
 
-          // Dla standardowej płatności dodaj osobę płacącą do kolekcji osób
-          if (!isComplexPayment) {
-            newPeople.add(paidBy);
-          }
-
-          // Przetwarzamy osoby, które składają się na wydatek
-          let splitNames: string[] = [];
-
-          // Najpierw sprawdź, czy mamy do czynienia z tekstem zawierającym nawiasy
-          if (splitBetweenStr.includes("(") && splitBetweenStr.includes(")")) {
-            // W przypadku tekstu z nawiasami, używamy bezpieczniejszej metody parsowania
-            const matches = splitBetweenStr.match(/[^(),]+(?:\([^)]*\))?/g);
-            if (matches) {
-              splitNames = matches
+              // Przetwarzamy listę osób między które dzielony jest wydatek
+              const splitBetweenNames = splitBetweenStr
+                .split(/[,;]/)
                 .map((name) => cleanPersonName(name))
                 .filter((name) => name.length > 0);
+
+              splitBetweenNames.forEach((name) => newPeople.add(name));
+
+              importedExpenses.push({
+                id: crypto.randomUUID(),
+                description: description.trim(),
+                amount: amount,
+                paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
+                splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
+                importedData: {
+                  paidByName: paidBy,
+                  splitBetweenNames: splitBetweenNames,
+                },
+              });
             }
-          } else {
-            // Dla prostego tekstu bez nawiasów, rozdzielamy po przecinku lub pionowej kresce
-            splitNames = splitBetweenStr
-              .split(/,|\|/) // Rozdzielamy po przecinku lub znaku |
-              .map((name) => cleanPersonName(name))
-              .filter((name) => name.length > 0);
-          }
-
-          // Sprawdźmy, czy mamy brakujące osoby w splitNames
-          if (splitNames.length === 0) {
-            // Jeśli nie znaleziono osób dzielących wydatek, używamy wszystkich osób jako fallback
-            // ale najpierw wypisujemy ostrzeżenie
-            console.warn(
-              `Dla wydatku "${description}" nie znaleziono osób dzielących koszt. Używamy wszystkich osób jako fallback.`
-            );
-            splitNames = Array.from(newPeople);
-          }
-
-          // Upewnij się, że wszystkie osoby w splitNames są dodane do listy osób
-          splitNames.forEach((name) => {
-            if (name && name.length > 0) {
-              newPeople.add(name);
-            }
-          });
-
-          // Tworzymy wydatek
-          if (isComplexPayment && detectedPayments.length > 0) {
-            // Tworzenie złożonego wydatku
-            importedExpenses.push({
-              id: uuidv4(),
-              description: description.trim() || "Brak opisu",
-              amount: amount,
-              paidBy: "", // Dla złożonej płatności to pole jest puste
-              splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
-              isComplexPayment: true,
-              importedData: {
-                paidByName: paidBy, // Zachowujemy oryginalny tekst dla parsowania późniejszego
-                splitBetweenNames: splitNames,
-              },
-            });
-          } else {
-            // Tworzenie standardowego wydatku
-            importedExpenses.push({
-              id: uuidv4(),
-              description: description.trim() || "Brak opisu",
-              amount: amount,
-              paidBy: "", // Tymczasowo puste, uzupełnimy po utworzeniu osób
-              splitBetween: [], // Tymczasowo puste, uzupełnimy po utworzeniu osób
-              importedData: {
-                paidByName: paidBy,
-                splitBetweenNames: splitNames,
-              },
-            });
           }
         }
       }
     }
 
     if (!foundExpenses) {
-      showToast(
-        "Nie znaleziono sekcji wydatków w pliku. Plik powinien zawierać nagłówek 'Wydatki:'.",
-        "error"
-      );
+      showToast("Nie znaleziono wydatków w pliku.", "error");
       return;
     }
 
-    // Tworzymy nowe osoby - używamy setTimeout, aby dać oddech wątkowi UI
+    // Kontynuujemy przetwarzanie
     setTimeout(() => {
       finishProcessingImportedData(newPeople, importedExpenses);
     }, 0);
@@ -408,7 +402,7 @@ export default function Home() {
       if (expense.isComplexPayment) {
         // Dla złożonych płatności, parsujemy dane aby wyciągnąć płatności
         const payments: Payment[] = [];
-        const paymentPattern = /([^(]+)\s*\(([0-9.,]+)\s*zł\)/g;
+        const paymentPattern = /([^(]+)\s*\((\d+(?:[.,]\d+)?)\s*(?:zł)?\)/g;
         let match;
         const paymentText = cleanPersonName(importedData.paidByName);
 
@@ -796,9 +790,9 @@ export default function Home() {
           people.find((p) => p.id === settlement.from)?.name || settlement.from;
         const toName =
           people.find((p) => p.id === settlement.to)?.name || settlement.to;
-        csvContent += `${fromName};${toName};${settlement.amount.toFixed(
-          2
-        )}\r\n`;
+        csvContent += `${fromName};${toName};"${settlement.amount
+          .toFixed(2)
+          .replace(".", ",")}";\r\n`;
       });
 
       // Dodaj pustą linię separującą
@@ -816,7 +810,9 @@ export default function Home() {
               const name =
                 people.find((p) => p.id === payment.personId)?.name ||
                 payment.personId;
-              return `${name} (${payment.amount.toFixed(2)} zł)`;
+              return `${name} (${payment.amount
+                .toFixed(2)
+                .replace(".", ",")} zł)`;
             })
             .join(", ");
 
@@ -824,9 +820,9 @@ export default function Home() {
             .map((id) => people.find((p) => p.id === id)?.name || id)
             .join(", ");
 
-          csvContent += `${expense.description};${expense.amount.toFixed(
-            2
-          )};${payersList};${splitBetweenNames}\r\n`;
+          csvContent += `${expense.description};"${expense.amount
+            .toFixed(2)
+            .replace(".", ",")}";${payersList};${splitBetweenNames}\r\n`;
         }
         // Obsługa standardowych płatności
         else {
@@ -835,9 +831,9 @@ export default function Home() {
           const splitBetweenNames = expense.splitBetween
             .map((id) => people.find((p) => p.id === id)?.name || id)
             .join(", ");
-          csvContent += `${expense.description};${expense.amount.toFixed(
-            2
-          )};${paidByName};${splitBetweenNames}\r\n`;
+          csvContent += `${expense.description};"${expense.amount
+            .toFixed(2)
+            .replace(".", ",")}";${paidByName};${splitBetweenNames}\r\n`;
         }
       });
 
@@ -986,6 +982,40 @@ export default function Home() {
                     className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
                   >
                     <span>Importuj dane z pliku csv</span>
+                    <div className="relative group">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-5 h-5 ml-2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                        />
+                      </svg>
+                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity duration-200">
+                        <div className="flex flex-col items-center gap-1">
+                          <span>Nie wiesz jak powinien wyglądać plik?</span>
+                          <a
+                            href="/przykład.csv"
+                            download="przykład.csv"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                          >
+                            Pobierz przykład
+                          </a>
+                        </div>
+                        <div className="absolute bottom-0 right-2 transform translate-y-full">
+                          <div className="border-8 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
                   </button>
                 )}
               </div>
