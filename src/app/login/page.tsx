@@ -11,6 +11,7 @@ import Link from "next/link";
 
 function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleAvailable, setIsGoogleAvailable] = useState(true);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
   const error = searchParams?.get("error");
@@ -24,6 +25,22 @@ function LoginContent() {
       wszystkieParametry: Object.fromEntries(searchParams?.entries() || []),
     });
   }, [callbackUrl, error, searchParams]);
+
+  // Sprawdź dostępność Google OAuth
+  useEffect(() => {
+    async function checkGoogleAvailability() {
+      try {
+        const response = await fetch("/api/auth/provider-status");
+        const data = await response.json();
+        setIsGoogleAvailable(data.googleAvailable);
+      } catch (err) {
+        console.error("Błąd sprawdzania dostępności Google OAuth:", err);
+        setIsGoogleAvailable(false);
+      }
+    }
+
+    checkGoogleAvailability();
+  }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -178,28 +195,43 @@ Spróbuj użyć przycisku "Alternatywne logowanie (ręczne)" poniżej lub "Diagn
         )}
 
         <div className="space-y-4">
-          <button
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-            className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FaGoogle />
-            <span>
-              {isLoading ? "Logowanie..." : "Zaloguj się przez Google"}
-            </span>
-          </button>
+          {isGoogleAvailable ? (
+            <>
+              <button
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaGoogle />
+                <span>
+                  {isLoading ? "Logowanie..." : "Zaloguj się przez Google"}
+                </span>
+              </button>
 
-          <button
-            onClick={() => {
-              // Użyj alternatywnej metody logowania, która używa tylko skonfigurowanego NEXTAUTH_URL
-              window.location.href =
-                "/api/auth/manual-google-auth?callbackUrl=/dashboard";
-            }}
-            className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-          >
-            <FaGoogle />
-            <span>Alternatywne logowanie (ręczne)</span>
-          </button>
+              <button
+                onClick={() => {
+                  // Użyj alternatywnej metody logowania, która używa tylko skonfigurowanego NEXTAUTH_URL
+                  window.location.href =
+                    "/api/auth/manual-google-auth?callbackUrl=/dashboard";
+                }}
+                className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+              >
+                <FaGoogle />
+                <span>Alternatywne logowanie (ręczne)</span>
+              </button>
+            </>
+          ) : (
+            <div className="p-4 bg-amber-900/50 border border-amber-500 rounded-md">
+              <p className="text-white text-center">
+                Logowanie przez Google jest obecnie niedostępne. Brak
+                konfiguracji OAuth.
+              </p>
+              <p className="mt-2 text-sm text-amber-300 text-center">
+                Brakujące zmienne środowiskowe: GOOGLE_CLIENT_ID i
+                GOOGLE_CLIENT_SECRET
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="relative mb-6">

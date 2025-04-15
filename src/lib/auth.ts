@@ -1,8 +1,11 @@
-import { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
 import { JWT } from "next-auth/jwt";
+
+// Definiujemy typ dla tablicy dostawców
+type ProviderArray = ReturnType<typeof GoogleProvider>[];
 
 // Rozszerzamy typy NextAuth, aby obsługiwać dodatkowe pola w tokenie
 declare module "next-auth/jwt" {
@@ -127,68 +130,37 @@ export function cleanEnv(value: string | undefined): string {
   return cleaned;
 }
 
-// Pobierz zmienne środowiskowe i oczyść je z cudzysłowów
-const googleClientId = cleanEnv(process.env.GOOGLE_CLIENT_ID) || "";
-const googleClientSecret = cleanEnv(process.env.GOOGLE_CLIENT_SECRET) || "";
+// Sprawdzanie i ustawianie zmiennych środowiskowych z wartościami domyślnymi
+const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+const nextAuthUrl =
+  process.env.NEXTAUTH_URL ||
+  (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
 const nextAuthSecret =
-  cleanEnv(process.env.NEXTAUTH_SECRET) ||
-  "fallback-secret-do-not-use-in-production";
-const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL) || "";
+  process.env.NEXTAUTH_SECRET || "fallback_dev_secret_do_not_use_in_production";
 
-// Wyświetl szczegółowe informacje o zmiennych po oczyszczeniu
-console.log("=== ZMIENNE ŚRODOWISKOWE NEXTAUTH (po oczyszczeniu) ===");
-console.log(`NEXTAUTH_URL: ${nextAuthUrl}`);
+// Log zmiennych środowiskowych (tylko do debugowania)
+console.log("=== Zmienne środowiskowe NextAuth ===");
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`NEXTAUTH_URL: ${nextAuthUrl || "Brak"}`);
+console.log(`NEXTAUTH_SECRET dostępny: ${!!process.env.NEXTAUTH_SECRET}`);
 console.log(
-  `GOOGLE_CLIENT_ID: ${
-    googleClientId
-      ? `${googleClientId.substring(0, 10)}... (${
-          googleClientId.length
-        } znaków)`
-      : "BRAK"
+  `GOOGLE_CLIENT_ID dostępny: ${!!googleClientId}, długość: ${
+    googleClientId.length
   }`
 );
 console.log(
-  `GOOGLE_CLIENT_SECRET: ${
-    googleClientSecret
-      ? `${googleClientSecret.substring(0, 5)}... (${
-          googleClientSecret.length
-        } znaków)`
-      : "BRAK"
+  `GOOGLE_CLIENT_SECRET dostępny: ${!!googleClientSecret}, długość: ${
+    googleClientSecret.length
   }`
 );
-console.log("======================================================");
 
-// Sprawdź, czy mamy rzeczywiste wartości (nie domyślne z .env.production)
-const isDummyId = googleClientId.includes("dummy_id_for_build_time");
-const isDummySecret = googleClientSecret.includes(
-  "dummy_secret_for_build_time"
-);
+// Przygotuj tablicę dostawców
+const providers: ProviderArray = [];
 
-// Sprawdzenie czy mamy poprawne dane Google OAuth
-const googleCredentialsAvailable =
-  !isDummyId &&
-  !isDummySecret &&
-  googleClientId.length > 0 &&
-  googleClientSecret.length > 0;
-
-// Przygotuj listę providers
-const providers = [];
-
-// Dodaj Google provider tylko jeśli zmienne środowiskowe są dostępne
-if (googleCredentialsAvailable) {
-  console.log("✅ Konfiguracja Google OAuth dostępna. Dodawanie providera.");
-  console.log(
-    `   ID: ${googleClientId.substring(
-      0,
-      5
-    )}... Secret: ${googleClientSecret.substring(0, 3)}...`
-  );
-
-  // Wyświetl callback URL
-  const callbackUrl = `${nextAuthUrl}/api/auth/callback/google`;
-  console.log(`✅ Callback URL dla Google OAuth: ${callbackUrl}`);
-
-  // Dodajmy Google provider
+// Dodajmy Google provider tylko jeśli mamy dostępne zmienne
+if (googleClientId && googleClientSecret) {
+  console.log("Dodaję GoogleProvider - zmienne są dostępne");
   providers.push(
     GoogleProvider({
       clientId: googleClientId,
@@ -197,33 +169,8 @@ if (googleCredentialsAvailable) {
   );
 } else {
   console.log(
-    "❌ UWAGA: Brak konfiguracji Google OAuth. Logowanie przez Google będzie niedostępne."
+    "⚠️ Zmienne GOOGLE_CLIENT_ID lub GOOGLE_CLIENT_SECRET nie są dostępne - GoogleProvider nie zostanie dodany"
   );
-  console.log(
-    `   GOOGLE_CLIENT_ID: ${
-      isDummyId
-        ? "Wartość domyślna (dummy)"
-        : googleClientId
-        ? "Ustawione"
-        : "Brak"
-    } (${googleClientId.length} znaków)`
-  );
-  console.log(
-    `   GOOGLE_CLIENT_SECRET: ${
-      isDummySecret
-        ? "Wartość domyślna (dummy)"
-        : googleClientSecret
-        ? "Ustawione"
-        : "Brak"
-    } (${googleClientSecret.length} znaków)`
-  );
-
-  if (isDummyId)
-    console.log(`   ID zawiera 'dummy_id_for_build_time': ${isDummyId}`);
-  if (isDummySecret)
-    console.log(
-      `   Secret zawiera 'dummy_secret_for_build_time': ${isDummySecret}`
-    );
 }
 
 export const authOptions: NextAuthOptions = {

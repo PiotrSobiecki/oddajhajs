@@ -51,10 +51,33 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
-    }
+      // Zamiast przekierowania natychmiast, sprawdźmy czy OAuth jest skonfigurowany
+      // Jeśli nie, to pozwólmy użytkownikowi dalej korzystać z aplikacji bez logowania
 
-    if (status === "authenticated") {
+      const checkAuthAvailability = async () => {
+        try {
+          const response = await fetch("/api/auth/provider-status");
+          const data = await response.json();
+
+          if (data.googleAvailable) {
+            // Jeśli Google OAuth jest dostępny, przekieruj na stronę logowania
+            router.push("/login");
+          } else {
+            console.log(
+              "Google OAuth nie jest dostępny, pozwalam na korzystanie bez logowania"
+            );
+            // Kontynuuj bez logowania - nie przekierowuj
+            setIsLoading(false);
+          }
+        } catch (err) {
+          console.error("Błąd sprawdzania dostępności OAuth:", err);
+          // W przypadku błędu, dla bezpieczeństwa nie przekierowujemy
+          setIsLoading(false);
+        }
+      };
+
+      checkAuthAvailability();
+    } else if (status === "authenticated") {
       fetchGroups();
     }
   }, [status, router]);
@@ -171,6 +194,33 @@ export default function DashboardPage() {
     setConfirmDelete(null);
   };
 
+  // Gdy nie ma logowania i OAuth nie jest skonfigurowany
+  if (status === "unauthenticated" && !isLoading) {
+    return (
+      <div className="container max-w-4xl px-4 py-8 mx-auto sm:px-6 lg:px-8">
+        <div className="mb-8 p-6 bg-amber-900/30 border border-amber-500 rounded-lg">
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Logowanie nie jest dostępne
+          </h2>
+          <p className="text-amber-200">
+            Obecnie logowanie przez Google nie jest skonfigurowane na tym
+            serwerze. Brakujące zmienne środowiskowe GOOGLE_CLIENT_ID i
+            GOOGLE_CLIENT_SECRET.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Wróć do strony głównej
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Gdy użytkownik jest zalogowany lub trwa ładowanie
   if (status === "loading" || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
