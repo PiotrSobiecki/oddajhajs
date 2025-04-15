@@ -39,13 +39,34 @@ function parseUrl(urlString: string) {
 
 // Dodajmy funkcję pomocniczą do monitorowania zapytań
 const wrappedHandler = async (req: Request, ...args: any[]) => {
+  // Naprawiamy problem z baseUrl
   const url = new URL(req.url);
   console.log(
     `Auth Route - ${req.method} zapytanie: ${url.pathname}${url.search}`
   );
 
+  // Pobierz nagłówki X-Forwarded-* stosowane przez Railway
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  let detectedUrl = "";
+
+  if (forwardedProto && forwardedHost) {
+    detectedUrl = `${forwardedProto}://${forwardedHost}`;
+    console.log(`Auth Route - Wykryto przekierowany URL: ${detectedUrl}`);
+
+    // Nadpisz NEXTAUTH_URL w czasie wykonania, jeśli nie jest ustawiony
+    if (!process.env.NEXTAUTH_URL) {
+      console.log(
+        `Auth Route - Ustawiam tymczasowo NEXTAUTH_URL na ${detectedUrl}`
+      );
+      process.env.NEXTAUTH_URL = detectedUrl;
+    }
+  }
+
   // Analiza URL
   console.log("Auth Route - Szczegóły URL:", parseUrl(req.url));
+  console.log("Auth Route - NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
+  console.log("Auth Route - Wykryty URL:", detectedUrl);
 
   // Jeśli URL zawiera callback, dodaj szczegółowe debugowanie
   if (url.pathname.includes("/callback")) {

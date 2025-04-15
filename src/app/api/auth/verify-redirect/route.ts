@@ -2,8 +2,26 @@ import { NextResponse } from "next/server";
 
 // Ta funkcja pomoże sprawdzić, czy przekierowania działają poprawnie
 export async function GET(request: Request) {
-  const baseUrl = new URL(request.url).origin;
+  // Najpierw standardowa metoda (która może nie działać w Railway)
   const url = new URL(request.url);
+  const standardBaseUrl = url.origin;
+
+  // Metoda uwzględniająca proxy i nagłówki Railway
+  let detectedBaseUrl = "";
+
+  // Pobierz nagłówki X-Forwarded-* stosowane przez Railway
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+
+  if (forwardedProto && forwardedHost) {
+    detectedBaseUrl = `${forwardedProto}://${forwardedHost}`;
+  }
+
+  // Preferuj NEXTAUTH_URL, jeśli jest dostępny
+  const configuredBaseUrl = process.env.NEXTAUTH_URL || "";
+
+  // Użyj najlepszego dostępnego baseUrl
+  const baseUrl = configuredBaseUrl || detectedBaseUrl || standardBaseUrl;
 
   // Parametry z zapytania
   const params = Object.fromEntries(url.searchParams);
@@ -20,9 +38,12 @@ export async function GET(request: Request) {
   return NextResponse.json({
     test: "success",
     message: "Jeśli widzisz tę wiadomość, przekierowania działają poprawnie",
-    baseUrl,
-    verifyUrl: `${baseUrl}/api/auth/verify-redirect`,
+    baseUrlFromRequest: standardBaseUrl,
+    baseUrlFromHeaders: detectedBaseUrl,
+    baseUrlFromEnv: configuredBaseUrl,
+    baseUrlUsed: baseUrl,
     callbackUrl: callbackUrl,
+    verifyUrl: `${baseUrl}/api/auth/verify-redirect`,
     requestHeaders: headers,
     params: params,
     envInfo: {
