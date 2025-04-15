@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
 // Funkcja pomocnicza do debugowania zmiennych środowiskowych
-const logEnvVariables = () => {
+export function logEnvVariables() {
   // Sprawdź i wyświetl informacje o zmiennych środowiskowych (tylko w konsoli)
   console.log("========== NEXTAUTH ZMIENNE ŚRODOWISKOWE ==========");
   console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
@@ -30,8 +30,43 @@ const logEnvVariables = () => {
         : "Brak"
     }`
   );
+  console.log(
+    `DATABASE_URL: ${
+      process.env.DATABASE_URL
+        ? `Ustawione (długość: ${process.env.DATABASE_URL.length})`
+        : "Brak"
+    }`
+  );
+
+  // Lista wszystkich dostępnych zmiennych środowiskowych
+  console.log("Wszystkie zmienne środowiskowe RAILWAY_*:");
+  Object.keys(process.env)
+    .filter((key) => key.startsWith("RAILWAY_"))
+    .forEach((key) => console.log(`- ${key}`));
+
   console.log("====================================================");
-};
+
+  // Dodajemy dodatkowe debugowanie
+  console.log("Sesja - Zmienne środowiskowe:");
+  console.log(`- NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`- NEXTAUTH_URL dostępny: ${!!process.env.NEXTAUTH_URL}`);
+  console.log(`- NEXTAUTH_SECRET dostępny: ${!!process.env.NEXTAUTH_SECRET}`);
+  console.log(`- DATABASE_URL dostępny: ${!!process.env.DATABASE_URL}`);
+
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  console.log(
+    `- GOOGLE_CLIENT_ID dostępny: ${!!googleClientId}, długość: ${
+      googleClientId?.length || 0
+    }`
+  );
+  console.log(
+    `- GOOGLE_CLIENT_SECRET dostępny: ${!!googleClientSecret}, długość: ${
+      googleClientSecret?.length || 0
+    }`
+  );
+}
 
 // Wyświetl informacje o zmiennych środowiskowych przy uruchomieniu
 logEnvVariables();
@@ -41,6 +76,17 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const nextAuthSecret =
   process.env.NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production";
+
+console.log(
+  `googleClientId: ${
+    googleClientId ? googleClientId.substring(0, 5) + "..." : "pusty"
+  } (długość: ${googleClientId.length})`
+);
+console.log(
+  `googleClientSecret: ${
+    googleClientSecret ? googleClientSecret.substring(0, 3) + "..." : "pusty"
+  } (długość: ${googleClientSecret.length})`
+);
 
 // Sprawdź, czy mamy rzeczywiste wartości (nie domyślne z .env.production)
 const isDummyId = googleClientId.includes("dummy_id_for_build_time");
@@ -61,6 +107,12 @@ const providers = [];
 // Dodaj Google provider tylko jeśli zmienne środowiskowe są dostępne
 if (googleCredentialsAvailable) {
   console.log("✅ Konfiguracja Google OAuth dostępna. Dodawanie providera.");
+  console.log(
+    `   ID: ${googleClientId.substring(
+      0,
+      5
+    )}... Secret: ${googleClientSecret.substring(0, 3)}...`
+  );
   providers.push(
     GoogleProvider({
       clientId: googleClientId,
@@ -79,7 +131,7 @@ if (googleCredentialsAvailable) {
         : googleClientId
         ? "Ustawione"
         : "Brak"
-    }`
+    } (${googleClientId.length} znaków)`
   );
   console.log(
     `   GOOGLE_CLIENT_SECRET: ${
@@ -88,8 +140,15 @@ if (googleCredentialsAvailable) {
         : googleClientSecret
         ? "Ustawione"
         : "Brak"
-    }`
+    } (${googleClientSecret.length} znaków)`
   );
+
+  if (isDummyId)
+    console.log(`   ID zawiera 'dummy_id_for_build_time': ${isDummyId}`);
+  if (isDummySecret)
+    console.log(
+      `   Secret zawiera 'dummy_secret_for_build_time': ${isDummySecret}`
+    );
 }
 
 export const authOptions: NextAuthOptions = {
@@ -98,15 +157,50 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
+  debug: true, // Włączamy tryb debug dla lepszego logowania
+
+  // Dodajmy funkcje wywoływane na różnych etapach autoryzacji
+  events: {
+    async signIn(message) {
+      console.log("Sesja - Zdarzenie signIn:", {
+        user: message.user.name || message.user.email,
+        account: message.account?.provider,
+      });
+    },
+    async signOut(message) {
+      console.log("Sesja - Zdarzenie signOut:", {
+        session: message.session?.user?.email,
+      });
+    },
+    async session(message) {
+      console.log("Sesja - Zdarzenie session (token refreshed)");
+    },
+  },
+
   callbacks: {
-    session: ({ session, token }) => {
+    async jwt({ token, account, user }) {
+      console.log("Sesja - Callback JWT:", {
+        tokenExists: !!token,
+        accountExists: !!account,
+        userExists: !!user,
+      });
+
       if (token && session.user) {
         session.user.id = token.sub!;
       }
       return session;
     },
-    signIn: async ({ user, account, profile }) => {
-      return true;
+
+    async session({ session, token }) {
+      console.log("Sesja - Callback session:", {
+        sessionExists: !!session,
+        tokenExists: !!token,
+      });
+
+      if (token && session.user) {
+        session.user.id = token.sub!;
+      }
+      return session;
     },
   },
   pages: {
@@ -114,5 +208,4 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   secret: nextAuthSecret,
-  debug: process.env.NODE_ENV === "development",
 };
