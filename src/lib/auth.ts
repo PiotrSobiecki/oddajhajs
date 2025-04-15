@@ -8,6 +8,7 @@ import { JWT } from "next-auth/jwt";
 declare module "next-auth/jwt" {
   interface JWT {
     userId?: string;
+    email?: string;
   }
 }
 
@@ -159,12 +160,21 @@ if (googleCredentialsAvailable) {
       clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
       authorization: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
-          scope: "openid email profile",
+          scope: "openid profile email",
         },
+      },
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name || profile.login,
+          email: profile.email,
+          image: profile.picture,
+        };
       },
     })
   );
@@ -202,10 +212,28 @@ if (googleCredentialsAvailable) {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers,
+
+  // Ustawienia sesji
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 dni
   },
-  debug: true, // Włączamy tryb debug dla lepszego logowania
+
+  // Ustawienia cookies
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true, // Używamy HTTPS
+      },
+    },
+  },
+
+  // Włącz tryb debug
+  debug: true,
 
   // Dodajmy funkcje wywoływane na różnych etapach autoryzacji
   events: {
@@ -239,6 +267,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
+  // Callbacki
   callbacks: {
     async jwt({ token, account, user }) {
       console.log("Sesja - Callback JWT:", {
@@ -250,6 +279,9 @@ export const authOptions: NextAuthOptions = {
       // Zachowaj podstawowe informacje o użytkowniku
       if (account && user) {
         token.userId = user.id;
+        if (user.email) {
+          token.email = user.email;
+        }
       }
 
       return token;
@@ -268,35 +300,21 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    // Uproszczona obsługa przekierowań
+    // Obsługa przekierowań - uproszczona wersja
     async redirect({ url, baseUrl }) {
       console.log("Sesja - Callback redirect:", { url, baseUrl });
 
-      // Obsługa http/https
-      if (baseUrl.startsWith("http://") && url.startsWith("https://")) {
-        const httpBaseUrl = baseUrl;
-        const httpsBaseUrl = baseUrl.replace("http://", "https://");
-
-        console.log(`Porównuję HTTP/HTTPS URL:`, {
-          httpBaseUrl,
-          httpsBaseUrl,
-          url,
-        });
-
-        // Sprawdź czy URL pasuje do wersji HTTPS baseUrl
-        if (url.startsWith(httpsBaseUrl)) {
-          console.log(`✅ URL zgodny z HTTPS wersją baseUrl: ${url}`);
-          return url;
-        }
+      // Zwróć url, jeśli jest to względny URL (zaczyna się od /)
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
       }
 
-      // Standardowa obsługa
-      if (url.startsWith(baseUrl) || url.startsWith("/")) {
-        console.log(`✅ Standardowe przekierowanie: ${url}`);
+      // Zwróć url, jeśli należy do tej samej domeny
+      if (url.startsWith(baseUrl)) {
         return url;
       }
 
-      console.log(`⚠️ Przekierowanie na domyślny baseUrl: ${baseUrl}`);
+      // W przeciwnym razie przekieruj na stronę główną
       return baseUrl;
     },
 
@@ -306,9 +324,13 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
   },
+
+  // Niestandardowe strony
   pages: {
     signIn: "/login",
     error: "/login",
   },
+
+  // Sekret
   secret: nextAuthSecret,
 };
