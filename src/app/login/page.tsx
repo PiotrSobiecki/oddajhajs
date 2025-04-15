@@ -89,7 +89,13 @@ function LoginContent() {
       return "Błąd konfiguracji serwera. Skontaktuj się z administratorem.";
     }
     if (error === "google") {
-      return "Błąd podczas uwierzytelniania przez Google. Możliwe przyczyny: nieprawidłowa konfiguracja API, problemy z przekierowaniem, brak dostępu do API Google, nieautoryzowana domena. Sprawdź konsolę przeglądarki i logi serwera.";
+      return `Błąd podczas uwierzytelniania przez Google. Możliwe przyczyny:
+1. Nieprawidłowa konfiguracja Google OAuth API w Google Cloud
+2. Niedozwolona domena (sprawdź czy oddajhajs.org jest autoryzowana)
+3. Problemy z przekierowaniem zwrotnym (callback URL)
+4. Brak dostępu do API Google (sprawdź czy OAuth API jest włączone)
+
+Spróbuj użyć przycisku "Alternatywne logowanie (ręczne)" poniżej lub "Diagnostyka ręcznego OAuth" aby zobaczyć więcej szczegółów.`;
     }
 
     if (error) {
@@ -147,6 +153,16 @@ function LoginContent() {
                 className="text-blue-400 hover:text-blue-300 text-sm font-medium"
               >
                 Diagnostyka OAuth
+              </button>
+              <button
+                onClick={() => {
+                  const host = window.location.host;
+                  const protocol = window.location.protocol;
+                  window.location.href = `${protocol}//${host}/api/auth/manual-google-auth?debug=true`;
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Diagnostyka ręcznego OAuth
               </button>
             </div>
           </div>
