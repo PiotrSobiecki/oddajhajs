@@ -1,10 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 
-export default function AuthErrorPage() {
+// Komponent z danymi (używa useSearchParams)
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get("error");
   const [diagnostic, setDiagnostic] = useState<any>(null);
@@ -160,5 +161,30 @@ export default function AuthErrorPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Komponent fallback dla Suspense
+function AuthErrorFallback() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
+        <h1 className="text-2xl font-bold text-white mb-6">
+          Problem z logowaniem
+        </h1>
+        <div className="text-center py-6">
+          <p className="text-gray-400">Ładowanie informacji o błędzie...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Główny komponent strony owinięty w Suspense
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<AuthErrorFallback />}>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

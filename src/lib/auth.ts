@@ -92,7 +92,7 @@ export function logEnvVariables() {
 logEnvVariables();
 
 // Funkcja pomocnicza do oczyszczania zmiennych środowiskowych z cudzysłowów
-function cleanEnv(value: string | undefined): string {
+export function cleanEnv(value: string | undefined): string {
   if (!value) return "";
 
   // Usuń cudzysłowy z początku i końca
@@ -100,6 +100,30 @@ function cleanEnv(value: string | undefined): string {
   if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
     cleaned = cleaned.substring(1, cleaned.length - 1);
   }
+
+  // Sprawdź, czy wartość to placeholder (używamy nowych placeholderów)
+  const placeholders = [
+    "placeholder_id_for_build_time",
+    "placeholder_secret_for_build_time",
+    "placeholder_db_url_for_build_time",
+    "dummy_id_for_build_time",
+    "dummy_secret_for_build_time",
+    "dummy_db_url_for_build_time",
+  ];
+
+  if (placeholders.some((placeholder) => cleaned.includes(placeholder))) {
+    console.error(
+      `⚠️ UWAGA: Zmienna środowiskowa zawiera placeholder: ${cleaned.substring(
+        0,
+        10
+      )}...`
+    );
+    console.error(
+      `To oznacza, że zmienne z Railway nie są poprawnie przekazywane do aplikacji!`
+    );
+    return "";
+  }
+
   return cleaned;
 }
 
@@ -109,20 +133,30 @@ const googleClientSecret = cleanEnv(process.env.GOOGLE_CLIENT_SECRET) || "";
 const nextAuthSecret =
   cleanEnv(process.env.NEXTAUTH_SECRET) ||
   "fallback-secret-do-not-use-in-production";
-const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL);
+const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL) || "";
 
-// Wyświetl informacje o zmiennych po oczyszczeniu
-console.log(`NEXTAUTH_URL po oczyszczeniu: ${nextAuthUrl}`);
+// Wyświetl szczegółowe informacje o zmiennych po oczyszczeniu
+console.log("=== ZMIENNE ŚRODOWISKOWE NEXTAUTH (po oczyszczeniu) ===");
+console.log(`NEXTAUTH_URL: ${nextAuthUrl}`);
 console.log(
-  `googleClientId po oczyszczeniu: ${
-    googleClientId ? googleClientId.substring(0, 5) + "..." : "pusty"
-  } (długość: ${googleClientId.length})`
+  `GOOGLE_CLIENT_ID: ${
+    googleClientId
+      ? `${googleClientId.substring(0, 10)}... (${
+          googleClientId.length
+        } znaków)`
+      : "BRAK"
+  }`
 );
 console.log(
-  `googleClientSecret po oczyszczeniu: ${
-    googleClientSecret ? googleClientSecret.substring(0, 3) + "..." : "pusty"
-  } (długość: ${googleClientSecret.length})`
+  `GOOGLE_CLIENT_SECRET: ${
+    googleClientSecret
+      ? `${googleClientSecret.substring(0, 5)}... (${
+          googleClientSecret.length
+        } znaków)`
+      : "BRAK"
+  }`
 );
+console.log("======================================================");
 
 // Sprawdź, czy mamy rzeczywiste wartości (nie domyślne z .env.production)
 const isDummyId = googleClientId.includes("dummy_id_for_build_time");

@@ -4,12 +4,13 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+buildCommand = "echo 'Zmienne środowiskowe podczas budowania:' && env | grep -E '^(GOOGLE_|NEXTAUTH_|DATABASE_)' || echo 'Brak zmiennych środowiskowych'"
 
 [deploy]
 # Nie restartuj kontenera natychmiast po błędzie (pozwoli to na zebranie logów)
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
-healthcheckPath = "/api/check-env"
+healthcheckPath = "/api/auth/test-google-config"
 healthcheckTimeout = 100
 healthcheckInterval = 30
 
@@ -17,7 +18,16 @@ healthcheckInterval = 30
 # Ustawiamy limity zasobów
 numReplicas = 1
 
+# Upewnij się, że te zmienne są ustawione jako domyślne
+# Nie używaj wartości domyślnych z pliku .env.production
 [deploy.env]
 PORT = "3000"
 NODE_ENV = "production"
-NEXT_TELEMETRY_DISABLED = "1" 
+NEXT_TELEMETRY_DISABLED = "1"
+
+# Te zmienne muszą być ustawione w Railway:
+# - GOOGLE_CLIENT_ID
+# - GOOGLE_CLIENT_SECRET
+# - NEXTAUTH_URL
+# - NEXTAUTH_SECRET
+# - DATABASE_URL 

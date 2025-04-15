@@ -5,9 +5,6 @@ WORKDIR /app
 # Kopiuj pliki package.json i package-lock.json
 COPY package*.json ./
 
-# Kopiuj plik .env.production
-COPY .env.production ./.env.production
-
 # Kopiuj katalog prisma
 COPY prisma ./prisma/
 
@@ -27,6 +24,13 @@ COPY . .
 ENV NODE_ENV production
 ENV PORT 3000
 
+# Wyświetl informacje o zmiennych środowiskowych podczas budowania (bez uwzględnienia wartości)
+RUN echo "Zmienne środowiskowe, które będą użyte podczas budowania:"
+RUN printenv | grep -E "^(GOOGLE_|NEXTAUTH_|DATABASE_)" || echo "Brak zmiennych środowiskowych"
+
+# Usuń plik .env.production, aby upewnić się, że używane są zmienne środowiskowe
+RUN rm -f .env.production && echo "Usunięto .env.production, aby używać zmiennych środowiskowych z Railway"
+
 # Buduj aplikację
 RUN npm run build
 
@@ -37,6 +41,7 @@ EXPOSE 3000
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
     echo 'echo "Sprawdzanie zmiennych środowiskowych:"' >> /app/entrypoint.sh && \
+    echo 'env | grep -E "^(GOOGLE_|NEXTAUTH_|DATABASE_)" || echo "Brak zmiennych środowiskowych"' >> /app/entrypoint.sh && \
     echo 'node /app/healthcheck.js' >> /app/entrypoint.sh && \
     echo 'echo "Uruchamianie migracji..."' >> /app/entrypoint.sh && \
     echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
