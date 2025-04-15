@@ -193,15 +193,6 @@ if (googleCredentialsAvailable) {
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      // Upraszczamy i korygujemy konfigurację
-      authorization: {
-        params: {
-          prompt: "consent", // Wymuś zgodę użytkownika
-        },
-      },
-      httpOptions: {
-        timeout: 60000, // Zwiększam timeout do 60s
-      },
     })
   );
 } else {

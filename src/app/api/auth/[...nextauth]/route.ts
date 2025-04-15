@@ -64,48 +64,10 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
     detectedUrl = `${forwardedProto}://${forwardedHost}`;
     console.log(`Auth Route - Wykryto przekierowany URL: ${detectedUrl}`);
 
-    // Nadpisz URL w żądaniu, aby NextAuth otrzymał poprawny adres
-    if (isCallback || isSignIn) {
-      // Tworzymy nowy obiekt URL ze skorygowanym hostem
-      const fixedUrl = new URL(origUrl.toString());
-      fixedUrl.protocol = forwardedProto;
-      fixedUrl.host = forwardedHost;
-
-      // Modyfikujemy żądanie, aby użyć poprawnego URL
-      console.log(
-        `Auth Route - Naprawiam URL żądania z ${origUrl} na ${fixedUrl}`
-      );
-
-      // Tworzenie nowego obiektu Request z poprawnym URL
-      const modifiedReq = new Request(fixedUrl, {
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
-        cache: req.cache,
-        credentials: req.credentials,
-        integrity: req.integrity,
-        keepalive: req.keepalive,
-        mode: req.mode,
-        redirect: req.redirect,
-        referrer: req.referrer,
-        referrerPolicy: req.referrerPolicy,
-        signal: req.signal,
-      });
-
-      // Zastępujemy oryginalne żądanie
-      req = modifiedReq;
-      console.log(
-        `Auth Route - Żądanie zostało zmodyfikowane. Nowy URL: ${req.url}`
-      );
-    }
-
-    // Nadpisz NEXTAUTH_URL w czasie wykonania, jeśli nie jest ustawiony
-    if (!process.env.NEXTAUTH_URL) {
-      console.log(
-        `Auth Route - Ustawiam tymczasowo NEXTAUTH_URL na ${detectedUrl}`
-      );
-      process.env.NEXTAUTH_URL = detectedUrl;
-    }
+    // WAŻNE: Tylko ustawiamy NEXTAUTH_URL, ale nie modyfikujemy obiektu Request
+    // To jest kluczowe, ponieważ modyfikacja Request powodowała błąd 500
+    process.env.NEXTAUTH_URL = detectedUrl;
+    console.log(`Auth Route - Ustawiono NEXTAUTH_URL na ${detectedUrl}`);
   }
 
   // Analiza URL

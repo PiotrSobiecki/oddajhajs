@@ -26,25 +26,18 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
 
-    // Usuń wszystkie cookies związane z sesją
+    // Usuwamy usuwanie cookies - może to powodować problemy z autentykacją
+
     try {
-      document.cookie.split(";").forEach((cookie) => {
-        const [name] = cookie.trim().split("=");
-        if (name.includes("next-auth")) {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-          console.log(`Usunięto cookie: ${name}`);
-        }
+      console.log("Używam standardowej metody signIn z NextAuth");
+
+      // Użyj standardowej metody signIn z callbackUrl ustawionym na dashboard
+      // Z dokumentacji NextAuth - to jest zalecany sposób logowania
+      await signIn("google", {
+        callbackUrl: "/dashboard",
       });
-    } catch (e) {
-      console.error("Błąd podczas usuwania cookies:", e);
-    }
 
-    try {
-      // Użyj bezpośredniego przekierowania na endpoint (bez signIn)
-      console.log("Przekierowuję bezpośrednio na endpoint logowania Google");
-
-      // Bezpośrednie przekierowanie na endpoint OAuth
-      window.location.href = "/api/auth/signin/google?callbackUrl=/dashboard";
+      // Ten kod nie zostanie wykonany z powodu przekierowania
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -143,6 +136,12 @@ function LoginContent() {
                 className="text-blue-400 hover:text-blue-300 text-sm font-medium"
               >
                 Sprawdź konfigurację przekierowań
+              </button>
+              <button
+                onClick={() => (window.location.href = "/api/auth/debug-info")}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Diagnostyka OAuth
               </button>
             </div>
           </div>
