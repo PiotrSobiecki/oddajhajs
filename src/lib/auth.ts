@@ -113,6 +113,12 @@ if (googleCredentialsAvailable) {
       5
     )}... Secret: ${googleClientSecret.substring(0, 3)}...`
   );
+
+  // Wyświetl callback URL
+  const nextAuthUrl = process.env.NEXTAUTH_URL || "";
+  const callbackUrl = `${nextAuthUrl}/api/auth/callback/google`;
+  console.log(`✅ Callback URL dla Google OAuth: ${callbackUrl}`);
+
   providers.push(
     GoogleProvider({
       clientId: googleClientId,

@@ -44,5 +44,12 @@ RUN chmod +x /app/start.sh
 # Eksponuj port
 EXPOSE 3000
 
-# Uruchom migracje i aplikację
-CMD ["/app/start.sh"] 
+# Utwórz skrypt, który wyświetli redirect_uri używany przez NextAuth 
+RUN echo '#!/bin/sh' > /app/show-redirect.sh && \
+    echo 'echo "NEXTAUTH_URL: $NEXTAUTH_URL"' >> /app/show-redirect.sh && \
+    echo 'echo "Callback URL: ${NEXTAUTH_URL}/api/auth/callback/google"' >> /app/show-redirect.sh && \
+    chmod +x /app/show-redirect.sh && \
+    cat /app/show-redirect.sh
+
+# Uruchom migracje i aplikację - wcześniej wyświetl informacje o callback URL
+CMD /app/show-redirect.sh && /app/start.sh 
