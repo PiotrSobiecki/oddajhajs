@@ -197,7 +197,7 @@ if (googleCredentialsAvailable) {
         url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
           redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
-          prompt: "consent",
+          prompt: "select_account",
           access_type: "offline",
           response_type: "code",
           scope: "openid profile email",
@@ -283,66 +283,52 @@ export const authOptions: NextAuthOptions = {
 
   // Dodajmy funkcje wywoływane na różnych etapach autoryzacji
   events: {
-    async signIn(message) {
-      console.log("Sesja - Zdarzenie signIn:", {
-        user: message.user.name || message.user.email,
-        account: message.account?.provider,
-        isNewUser: message.isNewUser,
-        profile: message.profile ? "Dostępny" : "Brak",
+    signIn: ({ user, account, isNewUser }) => {
+      console.log("Zalogowano użytkownika:", {
+        userId: user.id,
+        email: user.email,
+        isNewUser,
+        provider: account?.provider,
       });
     },
-    async signOut(message) {
-      console.log("Sesja - Zdarzenie signOut:", {
-        session: message.session?.user?.email,
+    signOut: ({ session, token }) => {
+      console.log("Wylogowano użytkownika:", {
+        userId: session?.user?.id,
+        email: session?.user?.email,
       });
     },
-    async session(message) {
-      console.log("Sesja - Zdarzenie session (token refreshed)");
-    },
-    async createUser(message) {
-      console.log("Sesja - Utworzono nowego użytkownika:", message.user.email);
-    },
-    async updateUser(message) {
-      console.log("Sesja - Zaktualizowano użytkownika:", message.user.email);
-    },
-    async linkAccount(message) {
-      console.log("Sesja - Połączono konto:", {
-        provider: message.account.provider,
-        user: message.user.email,
+    session: ({ session, token }) => {
+      console.log("Zaktualizowano sesję:", {
+        userId: session?.user?.id,
+        email: session?.user?.email,
       });
     },
   },
 
   // Callbacki
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log("Sign In callback:", {
+        userExists: !!user,
+        accountExists: !!account,
+        profileExists: !!profile,
+      });
+      return true;
+    },
     async jwt({ token, user, account }) {
       console.log("JWT callback:", {
         tokenExists: !!token,
         userExists: !!user,
         accountExists: !!account,
         tokenSub: token?.sub,
-        userId: user?.id,
-        accountId: account?.providerAccountId,
       });
 
-      if (account && user) {
-        // Log successful authentication
-        console.log("Authentication successful:", {
-          provider: account.provider,
-          userEmail: user.email,
-          userName: user.name,
-        });
-
-        // Zachowaj podstawowe informacje o użytkowniku
+      // Dodaj userId do tokenu, jeśli mamy użytkownika
+      if (user) {
         token.userId = user.id;
-        if (user.email) {
-          token.email = user.email;
-        }
       }
-
       return token;
     },
-
     async session({ session, token }) {
       console.log("Session callback:", {
         sessionExists: !!session,
@@ -359,38 +345,12 @@ export const authOptions: NextAuthOptions = {
 
       return session;
     },
-
-    // Obsługa przekierowań - rozszerzona wersja do obsługi zagnieżdżonych URL
-    async redirect({ url, baseUrl }) {
-      console.log("Redirect callback:", { url, baseUrl, nextAuthUrl });
-      // Lepsza logika przekierowania
-      if (url.startsWith(baseUrl)) {
-        console.log("Przekierowanie do URL w bazowym URL:", url);
-        return url;
-      } else if (url.startsWith("/")) {
-        console.log("Przekierowanie do względnego URL:", `${baseUrl}${url}`);
-        return `${baseUrl}${url}`;
-      }
-      console.log("Przekierowanie do domyślnego URL:", baseUrl);
-      return baseUrl;
-    },
-
-    // Prosta walidacja logowania
-    async signIn({ user, account, profile }) {
-      console.log("signIn callback:", {
-        userExists: !!user,
-        accountExists: !!account,
-        profileExists: !!profile,
-        redirectUrl: nextAuthUrl,
-      });
-      return true;
-    },
   },
 
   // Niestandardowe strony
   pages: {
     signIn: "/login",
-    error: "/auth-error",
+    error: "/login", // Strona z błędami logowania
   },
 
   // Sekret

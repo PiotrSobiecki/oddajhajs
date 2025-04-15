@@ -24,6 +24,9 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
+    console.log("URL przekierowania:", callbackUrl);
+    console.log("Lokalizacja bieżąca:", window.location.href);
+    console.log("Origin:", window.location.origin);
 
     // Usuń wszystkie cookies związane z sesją
     try {
@@ -39,8 +42,15 @@ function LoginContent() {
     }
 
     try {
-      // Użyj bezpośredniego przekierowania na stronę logowania Google
-      window.location.href = "/api/auth/signin/google?callbackUrl=/dashboard";
+      // Użyj standardowej metody signIn z bezpośrednim przekierowaniem
+      console.log(
+        "Próbuję zalogować się przez Google z parametrem redirect=true"
+      );
+      await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: true,
+      });
+      // Ten kod się nie wykona, jeśli redirect=true
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -73,6 +83,9 @@ function LoginContent() {
     }
     if (error === "Configuration") {
       return "Błąd konfiguracji serwera. Skontaktuj się z administratorem.";
+    }
+    if (error === "google") {
+      return "Błąd podczas uwierzytelniania przez Google. Możliwe przyczyny: nieprawidłowa konfiguracja API, problemy z przekierowaniem, brak dostępu do API Google, nieautoryzowana domena. Sprawdź konsolę przeglądarki i logi serwera.";
     }
 
     if (error) {
