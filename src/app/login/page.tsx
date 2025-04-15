@@ -24,9 +24,8 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
-    console.log("URL przekierowania:", callbackUrl);
-    console.log("Lokalizacja bieżąca:", window.location.href);
-    console.log("Origin:", window.location.origin);
+    console.log("Aktualny URL:", window.location.href);
+    console.log("Docelowy callback:", "/dashboard");
 
     // Usuń wszystkie cookies związane z sesją
     try {
@@ -42,15 +41,13 @@ function LoginContent() {
     }
 
     try {
-      // Użyj standardowej metody signIn z bezpośrednim przekierowaniem
-      console.log(
-        "Próbuję zalogować się przez Google z parametrem redirect=true"
-      );
-      await signIn("google", {
-        callbackUrl: "/dashboard",
-        redirect: true,
-      });
-      // Ten kod się nie wykona, jeśli redirect=true
+      // Użyj najbardziej podstawowej konfiguracji logowania
+      console.log("Próbuję zalogować się przez Google - uproszczona wersja");
+
+      // Bezpośrednie przekierowanie bez dodatkowych parametrów
+      await signIn("google");
+
+      // Ten kod się nie wykona z powodu przekierowania
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -76,7 +73,7 @@ function LoginContent() {
       return "Nie można utworzyć konta użytkownika. Możliwe, że konto już istnieje.";
     }
     if (error === "Callback") {
-      return "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania.";
+      return "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania. Sprawdź, czy callback URL w konsoli Google jest ustawiony dokładnie na https://oddajhajs.org/api/auth/callback/google i czy domena jest autoryzowana.";
     }
     if (error === "AccessDenied") {
       return "Dostęp zabroniony. Nie masz uprawnień do zalogowania się.";

@@ -194,9 +194,7 @@ if (googleCredentialsAvailable) {
       clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
       authorization: {
-        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
-          redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
           prompt: "select_account",
           access_type: "offline",
           response_type: "code",
