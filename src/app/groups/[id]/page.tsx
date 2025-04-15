@@ -485,3 +485,6 @@ export default function GroupPage() {
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;

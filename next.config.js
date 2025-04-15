@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     domains: ["lh3.googleusercontent.com"], // Zezwolenie na obrazy z Google (zdjęcia profilowe)
   },
+  // Wyłącz optymalizacje, które mogą powodować problemy podczas budowania
+  output: "standalone",
 };
 
 module.exports = nextConfig;
