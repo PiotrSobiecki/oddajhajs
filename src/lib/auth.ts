@@ -196,6 +196,7 @@ if (googleCredentialsAvailable) {
       authorization: {
         url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
+          redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
@@ -208,6 +209,10 @@ if (googleCredentialsAvailable) {
           profileExists: !!profile,
           profileSub: profile.sub,
           profileEmail: profile.email,
+          serverUrl: nextAuthUrl,
+          tokensAvailable: !!tokens,
+          tokensExpiry: tokens.expiry_date,
+          tokenScope: tokens.scope,
         });
 
         return {
@@ -310,15 +315,25 @@ export const authOptions: NextAuthOptions = {
 
   // Callbacki
   callbacks: {
-    async jwt({ token, account, user }) {
-      console.log("Sesja - Callback JWT:", {
+    async jwt({ token, user, account }) {
+      console.log("JWT callback:", {
         tokenExists: !!token,
-        accountExists: !!account,
         userExists: !!user,
+        accountExists: !!account,
+        tokenSub: token?.sub,
+        userId: user?.id,
+        accountId: account?.providerAccountId,
       });
 
-      // Zachowaj podstawowe informacje o użytkowniku
       if (account && user) {
+        // Log successful authentication
+        console.log("Authentication successful:", {
+          provider: account.provider,
+          userEmail: user.email,
+          userName: user.name,
+        });
+
+        // Zachowaj podstawowe informacje o użytkowniku
         token.userId = user.id;
         if (user.email) {
           token.email = user.email;
@@ -329,13 +344,17 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      console.log("Sesja - Callback session:", {
+      console.log("Session callback:", {
         sessionExists: !!session,
         tokenExists: !!token,
+        tokenUserId: token?.userId,
+        tokenEmail: token?.email,
+        tokenSub: token?.sub,
       });
 
-      if (token && session.user) {
-        session.user.id = token.userId || token.sub!;
+      if (token && token.userId) {
+        session.user.id = token.userId as string;
+        console.log("Session updated with user id:", token.userId);
       }
 
       return session;
@@ -343,79 +362,27 @@ export const authOptions: NextAuthOptions = {
 
     // Obsługa przekierowań - rozszerzona wersja do obsługi zagnieżdżonych URL
     async redirect({ url, baseUrl }) {
-      console.log("Sesja - Callback redirect:", { url, baseUrl });
-
-      // Sprawdź, czy URL zawiera zagnieżdżone przekierowania
-      if (url.includes("?callbackUrl=") || url.includes("&callbackUrl=")) {
-        try {
-          console.log("Wykryto zagnieżdżone przekierowanie w URL:", url);
-
-          // Jeśli URL zawiera error=Callback, przekieruj na stronę logowania
-          if (url.includes("error=Callback")) {
-            console.log("Wykryto error=Callback, przekierowuję na /login");
-            return `${baseUrl}/login`;
-          }
-
-          // Spróbuj wyodrębnić najgłębszy callbackUrl
-          const urlObj = new URL(url);
-          const params = new URLSearchParams(urlObj.search);
-          const nestedCallback = params.get("callbackUrl");
-
-          if (nestedCallback) {
-            console.log("Znaleziono zagnieżdżony callbackUrl:", nestedCallback);
-
-            // Spróbuj zdekodować zagnieżdżony URL
-            try {
-              const decodedCallback = decodeURIComponent(nestedCallback);
-              console.log("Zdekodowany callbackUrl:", decodedCallback);
-
-              // Jeśli zdekodowany URL zaczyna się od baseUrl, użyj go
-              if (
-                decodedCallback.startsWith(baseUrl) ||
-                decodedCallback.startsWith("/")
-              ) {
-                const finalUrl = decodedCallback.startsWith("/")
-                  ? `${baseUrl}${decodedCallback}`
-                  : decodedCallback;
-
-                console.log("Używam zdekodowanego callbackUrl:", finalUrl);
-                return finalUrl;
-              }
-            } catch (error) {
-              console.error("Błąd podczas dekodowania callbackUrl:", error);
-            }
-          }
-        } catch (error) {
-          console.error(
-            "Błąd podczas przetwarzania zagnieżdżonego URL:",
-            error
-          );
-        }
-      }
-
-      // Podstawowa obsługa, jeśli zagnieżdżone przekierowanie nie zadziałało
-
-      // Zwróć url, jeśli jest to względny URL (zaczyna się od /)
-      if (url.startsWith("/")) {
-        const finalUrl = `${baseUrl}${url}`;
-        console.log("Przekierowuję na względny URL:", finalUrl);
-        return finalUrl;
-      }
-
-      // Zwróć url, jeśli należy do tej samej domeny
+      console.log("Redirect callback:", { url, baseUrl, nextAuthUrl });
+      // Lepsza logika przekierowania
       if (url.startsWith(baseUrl)) {
-        console.log("Przekierowuję na URL z tej samej domeny:", url);
+        console.log("Przekierowanie do URL w bazowym URL:", url);
         return url;
+      } else if (url.startsWith("/")) {
+        console.log("Przekierowanie do względnego URL:", `${baseUrl}${url}`);
+        return `${baseUrl}${url}`;
       }
-
-      // W przeciwnym razie przekieruj na stronę główną
-      console.log("Przekierowuję na domyślny baseUrl:", baseUrl);
+      console.log("Przekierowanie do domyślnego URL:", baseUrl);
       return baseUrl;
     },
 
     // Prosta walidacja logowania
-    async signIn({ user }) {
-      console.log("Sesja - Callback signIn dla użytkownika:", user?.email);
+    async signIn({ user, account, profile }) {
+      console.log("signIn callback:", {
+        userExists: !!user,
+        accountExists: !!account,
+        profileExists: !!profile,
+        redirectUrl: nextAuthUrl,
+      });
       return true;
     },
   },
