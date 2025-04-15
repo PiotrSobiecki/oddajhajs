@@ -71,19 +71,35 @@ export function logEnvVariables() {
 // Wyświetl informacje o zmiennych środowiskowych przy uruchomieniu
 logEnvVariables();
 
-// Pobierz zmienne środowiskowe
-const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-const nextAuthSecret =
-  process.env.NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production";
+// Funkcja pomocnicza do oczyszczania zmiennych środowiskowych z cudzysłowów
+function cleanEnv(value: string | undefined): string {
+  if (!value) return "";
 
+  // Usuń cudzysłowy z początku i końca
+  let cleaned = value.trim();
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned;
+}
+
+// Pobierz zmienne środowiskowe i oczyść je z cudzysłowów
+const googleClientId = cleanEnv(process.env.GOOGLE_CLIENT_ID) || "";
+const googleClientSecret = cleanEnv(process.env.GOOGLE_CLIENT_SECRET) || "";
+const nextAuthSecret =
+  cleanEnv(process.env.NEXTAUTH_SECRET) ||
+  "fallback-secret-do-not-use-in-production";
+const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL);
+
+// Wyświetl informacje o zmiennych po oczyszczeniu
+console.log(`NEXTAUTH_URL po oczyszczeniu: ${nextAuthUrl}`);
 console.log(
-  `googleClientId: ${
+  `googleClientId po oczyszczeniu: ${
     googleClientId ? googleClientId.substring(0, 5) + "..." : "pusty"
   } (długość: ${googleClientId.length})`
 );
 console.log(
-  `googleClientSecret: ${
+  `googleClientSecret po oczyszczeniu: ${
     googleClientSecret ? googleClientSecret.substring(0, 3) + "..." : "pusty"
   } (długość: ${googleClientSecret.length})`
 );

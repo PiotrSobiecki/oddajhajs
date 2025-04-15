@@ -3,6 +3,22 @@ import { authOptions } from "@/lib/auth";
 
 console.log("Auth Route - Inicjalizacja API Route NextAuth");
 
+// Funkcja pomocnicza do usuwania cudzysłowów ze zmiennych środowiskowych
+function cleanEnv(value: string | undefined): string {
+  if (!value) return "";
+
+  // Usuń cudzysłowy z początku i końca
+  let cleaned = value.trim();
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned;
+}
+
+// Sprawdzamy zmienne środowiskowe
+const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL);
+console.log(`Auth Route - NEXTAUTH_URL po oczyszczeniu: "${nextAuthUrl}"`);
+
 const handler = NextAuth(authOptions);
 
 // Dodajmy funkcję pomocniczą do monitorowania zapytań
