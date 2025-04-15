@@ -188,42 +188,16 @@ if (googleCredentialsAvailable) {
   const callbackUrl = `${nextAuthUrl}/api/auth/callback/google`;
   console.log(`✅ Callback URL dla Google OAuth: ${callbackUrl}`);
 
+  // Dodajmy Google provider
   providers.push(
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      allowDangerousEmailAccountLinking: true,
-
-      // Dodajemy pełną i explicite konfigurację, żeby mieć pewność
+      // Upraszczamy konfigurację do minimum
       authorization: {
-        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
           prompt: "select_account",
-          access_type: "offline",
-          response_type: "code",
-          scope: "openid profile email",
         },
-      },
-
-      // Logujemy więcej informacji o procesie logowania
-      async profile(profile, tokens) {
-        console.log("Google profile callback:", {
-          profileExists: !!profile,
-          profileSub: profile.sub,
-          profileEmail: profile.email,
-          serverUrl: nextAuthUrl,
-          tokensAvailable: !!tokens,
-          tokensType: tokens.token_type,
-          tokensExpiry: tokens.expiry_date,
-          tokenScope: tokens.scope,
-        });
-
-        return {
-          id: profile.sub,
-          name: profile.name || profile.login,
-          email: profile.email,
-          image: profile.picture,
-        };
       },
     })
   );

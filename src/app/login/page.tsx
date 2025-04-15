@@ -49,16 +49,19 @@ function LoginContent() {
     }
 
     try {
-      // Użyj najbardziej podstawowej konfiguracji logowania z jawnie określonym callbackUrl
-      console.log(
-        "Próbuję zalogować się przez Google z określonym callbackUrl"
-      );
+      // Wypróbuj alternatywną metodę przekierowania
+      console.log("Alternatywne podejście do logowania przez Google");
 
-      // Ustaw konkretny callbackUrl
-      await signIn("google", {
-        callbackUrl: "/dashboard",
+      // Metoda 1: standardowe signIn z pełnym URL
+      signIn("google", {
+        callbackUrl: `${window.location.origin}/dashboard`,
         redirect: true,
       });
+
+      /* // Metoda 2: bezpośrednie przekierowanie na endpoint logowania
+      window.location.href = `${window.location.origin}/api/auth/signin/google?callbackUrl=${encodeURIComponent(
+        `${window.location.origin}/dashboard`
+      )}`; */
 
       // Ten kod nie zostanie wykonany, gdyż nastąpi przekierowanie przeglądarki
     } catch (error) {
@@ -134,7 +137,7 @@ function LoginContent() {
 
         {errorMessage && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-md text-white text-sm space-y-3">
-            <p>{errorMessage}</p>
+            <p className="whitespace-pre-line">{errorMessage}</p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => (window.location.href = "/login")}
@@ -147,6 +150,14 @@ function LoginContent() {
                 className="text-blue-400 hover:text-blue-300 text-sm font-medium"
               >
                 Zresetuj sesję i wyczyść cookies
+              </button>
+              <button
+                onClick={() =>
+                  (window.location.href = "/api/auth/verify-redirect")
+                }
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Sprawdź konfigurację przekierowań
               </button>
             </div>
           </div>
