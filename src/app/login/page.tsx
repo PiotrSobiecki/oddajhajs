@@ -52,7 +52,21 @@ function LoginContent() {
       return "Błąd podczas inicjowania logowania OAuth. Sprawdź konfigurację.";
     }
     if (error === "OAuthCallback") {
-      return "Błąd podczas odbierania danych z OAuth. Sprawdź zmienne środowiskowe i przekierowania.";
+      let message = "Błąd podczas przetwarzania odpowiedzi z Google OAuth.";
+
+      if (errorDetails) {
+        message += `\n\nSzczegóły: ${errorDetails}`;
+      } else {
+        message += "\n\nMożliwe przyczyny:";
+        message += "\n1. Błąd konfiguracji callbacka w konsoli Google Cloud";
+        message += "\n2. Problem z przetwarzaniem odpowiedzi z Google";
+        message += "\n3. Niepoprawna wymiana kodu autoryzacyjnego na token";
+      }
+
+      message +=
+        "\n\nSpróbuj użyć przycisku 'Alternatywne logowanie (ręczne)', który używa naszego własnego handlera callbacków.";
+
+      return message;
     }
     if (error === "OAuthCreateAccount") {
       return "Nie można utworzyć konta użytkownika. Możliwe, że konto już istnieje.";

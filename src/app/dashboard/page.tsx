@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   FaPlus,
@@ -27,6 +27,9 @@ type Group = {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const loginSuccess = searchParams.get("loginSuccess");
+  const email = searchParams.get("email");
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
@@ -52,6 +55,12 @@ export default function DashboardPage() {
       fetchGroups();
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (loginSuccess && email) {
+      showToast(`Logowanie testowe udane! Email: ${email}`, "success");
+    }
+  }, [loginSuccess, email]);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({

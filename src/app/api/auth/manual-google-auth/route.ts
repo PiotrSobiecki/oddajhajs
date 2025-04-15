@@ -64,8 +64,8 @@ export async function GET(request: Request) {
     const callbackUrl = url.searchParams.get("callbackUrl") || "/dashboard";
     const showDebug = url.searchParams.get("debug") === "true";
 
-    // Ustal adres przekierowania (callback) - użyj URL, który jest oficjalnie skonfigurowany w Google
-    const googleCallbackUrl = `${baseUrl}/api/auth/callback/google`;
+    // Ustal adres przekierowania (callback) - użyj naszego własnego handlera
+    const googleCallbackUrl = `${baseUrl}/api/auth/callback-handler`;
 
     // Generowanie losowego stanu dla bezpieczeństwa
     const state = Math.random().toString(36).substring(2, 15);
