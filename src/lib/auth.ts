@@ -3,19 +3,41 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error("Brak wymaganych zmiennych środowiskowych dla Google OAuth");
+// Pobierz zmienne środowiskowe bezpośrednio
+const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+const nextAuthSecret = process.env.NEXTAUTH_SECRET || "";
+
+// Sprawdzenie czy mamy poprawne dane Google OAuth
+const googleCredentialsAvailable =
+  googleClientId.length > 0 && googleClientSecret.length > 0;
+
+// Przygotuj listę providers
+const providers = [];
+
+// Dodaj Google provider tylko jeśli zmienne środowiskowe są dostępne
+if (googleCredentialsAvailable) {
+  console.log("Konfiguracja Google OAuth dostępna. Dodawanie providera.");
+  providers.push(
+    GoogleProvider({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      allowDangerousEmailAccountLinking: true,
+    })
+  );
+} else {
+  console.log(
+    "UWAGA: Brak konfiguracji Google OAuth. Logowanie przez Google będzie niedostępne."
+  );
+  console.log(`GOOGLE_CLIENT_ID: ${googleClientId ? "Ustawione" : "Brak"}`);
+  console.log(
+    `GOOGLE_CLIENT_SECRET: ${googleClientSecret ? "Ustawione" : "Brak"}`
+  );
 }
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: true,
-    }),
-  ],
+  providers,
   session: {
     strategy: "jwt",
   },
@@ -34,6 +56,6 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret.length > 0 ? nextAuthSecret : undefined,
   debug: process.env.NODE_ENV === "development",
 };

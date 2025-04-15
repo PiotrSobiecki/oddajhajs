@@ -35,11 +35,17 @@ Aby wdrożyć aplikację na Railway z działającym logowaniem przez Google, wyk
 
 1. Inicjalizuj projekt Railway: `railway init`
 2. Ustaw zmienne środowiskowe w Railway:
+
+   Wprowadź następujące zmienne środowiskowe dokładnie w takim formacie (bez cudzysłowów i spacji):
+
    - `DATABASE_URL` - URL połączenia do PostgreSQL
    - `NEXTAUTH_URL` - URL Twojej aplikacji na Railway (np. `https://twoja-domena.up.railway.app`)
    - `NEXTAUTH_SECRET` - bezpieczny ciąg znaków (wygeneruj komendą: `openssl rand -base64 32`)
    - `GOOGLE_CLIENT_ID` - ID klienta Google OAuth
    - `GOOGLE_CLIENT_SECRET` - Secret klienta Google OAuth
+
+   > **UWAGA:** Upewnij się, że wszystkie zmienne środowiskowe są poprawnie ustawione w panelu Railway. Wartości NIE powinny być ujęte w cudzysłowy. Możesz zweryfikować ich status po wdrożeniu, odwiedzając endpoint `/api/check-env`.
+
 3. Wdróż aplikację: `railway up`
 
 ### 5. Generowanie schematu Prisma dla produkcji
@@ -54,7 +60,9 @@ npx prisma db push
 ### 6. Weryfikacja
 
 1. Przejdź do swojej aplikacji na Railway
-2. Sprawdź, czy logowanie przez Google działa poprawnie
+2. Sprawdź status zmiennych środowiskowych pod adresem: `https://twoja-domena.up.railway.app/api/check-env`
+3. Upewnij się, że wszystkie wymagane zmienne są oznaczone jako "Ustawione"
+4. Sprawdź, czy logowanie przez Google działa poprawnie
 
 ## Rozwiązywanie problemów
 
@@ -63,8 +71,9 @@ npx prisma db push
 Jeśli logowanie przez Google nie działa:
 
 1. Sprawdź, czy URL przekierowania w Google Cloud Console dokładnie odpowiada URLowi Twojej aplikacji
-2. Upewnij się, że zmienne środowiskowe GOOGLE_CLIENT_ID i GOOGLE_CLIENT_SECRET są poprawnie ustawione
-3. Sprawdź logi aplikacji, aby zobaczyć szczegóły błędów
+2. Upewnij się, że zmienne środowiskowe GOOGLE_CLIENT_ID i GOOGLE_CLIENT_SECRET są poprawnie ustawione (bez cudzysłowów)
+3. Sprawdź status zmiennych środowiskowych pod adresem `/api/check-env`
+4. Sprawdź logi aplikacji, aby zobaczyć szczegóły błędów
 
 ### Problem z połączeniem do bazy danych
 
