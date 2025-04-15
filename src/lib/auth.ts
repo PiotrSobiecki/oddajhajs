@@ -168,7 +168,14 @@ if (googleCredentialsAvailable) {
           scope: "openid profile email",
         },
       },
-      profile(profile) {
+      // Logujemy więcej informacji o procesie logowania
+      async profile(profile, tokens) {
+        console.log("Google profile callback:", {
+          profileExists: !!profile,
+          profileSub: profile.sub,
+          profileEmail: profile.email,
+        });
+
         return {
           id: profile.sub,
           name: profile.name || profile.login,
@@ -382,7 +389,7 @@ export const authOptions: NextAuthOptions = {
   // Niestandardowe strony
   pages: {
     signIn: "/login",
-    error: "/login",
+    error: "/auth-error",
   },
 
   // Sekret
