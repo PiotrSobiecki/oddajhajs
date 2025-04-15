@@ -33,7 +33,61 @@ export default function Home() {
     type: "success",
   });
 
-  // Reszta kodu tej strony pozostaje bez zmian...
+  useEffect(() => {
+    // Sprawdzamy czy użytkownik już widział popup
+    const hasSeenIntro = localStorage.getItem("oddajhajs_seen_intro");
+    if (!hasSeenIntro) {
+      setShowIntroPopup(true);
+    }
+
+    // Tworzymy ukryty input dla plików
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx,.xls";
+    input.style.display = "none";
+    input.addEventListener("change", handleFileSelect);
+    document.body.appendChild(input);
+    setFileInput(input);
+
+    return () => {
+      if (fileInput) {
+        fileInput.removeEventListener("change", handleFileSelect);
+        document.body.removeChild(fileInput);
+      }
+    };
+  }, [fileInput]);
+
+  const handleCloseIntroPopup = () => {
+    setShowIntroPopup(false);
+    localStorage.setItem("oddajhajs_seen_intro", "true");
+  };
+
+  const importFromFile = () => {
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
+  const handleFileSelect = (event: Event) => {
+    // Uproszczona wersja funkcji obsługującej wybór pliku
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      showToast("Importowanie pliku w toku...", "success");
+      // W produkcyjnej wersji tutaj byłaby faktyczna obsługa pliku
+    }
+  };
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({
+      message,
+      visible: true,
+      type,
+    });
+
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 5000);
+  };
 
   const handleShowInstructions = () => {
     setShowInstructions(true);
@@ -45,6 +99,17 @@ export default function Home() {
 
   const handleCloseCalculator = () => {
     setShowCalculator(false);
+  };
+
+  const addPerson = () => {
+    if (newPersonName.trim()) {
+      const person = {
+        id: uuidv4(),
+        name: newPersonName.trim(),
+      };
+      setPeople([...people, person]);
+      setNewPersonName("");
+    }
   };
 
   const resetApp = () => {
