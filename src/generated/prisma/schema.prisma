@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(cuid())
+  name           String?
+  email          String?       @unique
+  emailVerified  DateTime?
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  createdGroups  Group[]       @relation("GroupCreator")
+  memberOfGroups GroupMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  creatorId   String
+  creator     User          @relation("GroupCreator", fields: [creatorId], references: [id])
+  members     GroupMember[]
+  expenses    Expense[]
+}
+
+model GroupMember {
+  id       String         @id @default(cuid())
+  groupId  String
+  userId   String
+  isActive Boolean        @default(true)
+  joinedAt DateTime       @default(now())
+  group    Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]      @relation("PaidBy")
+  partOf   ExpenseSplit[]
+
+  @@unique([groupId, userId])
+}
+
+model Expense {
+  id               String         @id @default(cuid())
+  description      String
+  amount           Float
+  date             DateTime       @default(now())
+  groupId          String
+  paidById         String?
+  isComplexPayment Boolean        @default(false)
+  group            Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy           GroupMember?   @relation("PaidBy", fields: [paidById], references: [id])
+  splitBetween     ExpenseSplit[]
+  payments         Payment[]
+}
+
+model Payment {
+  id        String  @id @default(cuid())
+  expenseId String
+  memberId  String
+  amount    Float
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+model ExpenseSplit {
+  id        String      @id @default(cuid())
+  expenseId String
+  memberId  String
+  expense   Expense     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member    GroupMember @relation(fields: [memberId], references: [id])
+
+  @@unique([expenseId, memberId])
+}

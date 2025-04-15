@@ -2,6 +2,7 @@ import "./globals.css";
 import { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { SessionProvider } from "@/components/SessionProvider";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
 
@@ -34,9 +35,9 @@ export default function RootLayout({
   return (
     <html lang="pl" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} flex flex-col min-h-screen`}>
-        <ThemeProvider>
-          <div className="flex flex-col min-h-screen">{children}</div>
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );

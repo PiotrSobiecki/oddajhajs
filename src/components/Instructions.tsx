@@ -6,6 +6,7 @@ import {
   FaMoneyBillWave,
   FaUserFriends,
   FaCalculator,
+  FaUserLock,
 } from "react-icons/fa";
 
 interface InstructionsProps {
@@ -14,7 +15,7 @@ interface InstructionsProps {
 
 export default function Instructions({ onClose }: InstructionsProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -161,6 +162,55 @@ export default function Instructions({ onClose }: InstructionsProps) {
                     <strong>Sekretna technika:</strong> Aplikacja sama ogarnia,
                     jak rozdzielić hajs, żeby było jak najmniej przelewów. Mniej
                     roboty dla wszystkich, więcej czasu na kolejne spotkania!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <FaUserLock className="text-blue-400 text-2xl" />
+                  <h3 className="text-xl font-semibold">
+                    Krok 4: Wbijaj na wyższy level z kontem!
+                  </h3>
+                </div>
+                <p>
+                  Masz dość robienia rozliczeń od zera za każdym razem? Zaloguj
+                  się i ogarnij grupy ze stałą ekipą!
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    Kliknij w przycisk logowania w prawym rogu i załóż konto w 3
+                    sekundy przez Google
+                  </li>
+                  <li>
+                    Stwórz grupę w kilka sekund - system od razu doda Cię jako
+                    pierwszego członka!
+                  </li>
+                  <li>
+                    Zbieraj ekipę w grupy i trzymaj historię wszystkich
+                    imprez/wyjazdów
+                  </li>
+                  <li>
+                    Zapraszaj kumpli do grupy - niech sami dodają wydatki
+                    zamiast słać Ci paragony na Messengerze
+                  </li>
+                  <li>
+                    Miej wszystkie rozliczenia w jednym miejscu - zero exceli na
+                    pulpicie!
+                  </li>
+                  <li>
+                    Odpal apkę na komórce podczas wyjazdu i dodawaj wydatki na
+                    bieżąco - zero zapisywania na karteczkach!
+                  </li>
+                </ul>
+                <div className="bg-gray-700 p-4 rounded-md border-l-4 border-blue-400">
+                  <p className="text-blue-300">
+                    <strong>Level PRO:</strong> Nie musisz tłumaczyć ziomkom jak
+                    działa rozliczenie - po prostu dodaj ich do grupy i niech
+                    sami zobaczą kto ma oddać hajs! Mniej spamowania na grupce
+                    "ODDAJCIE MI HAJSY!!!"
                   </p>
                 </div>
               </div>

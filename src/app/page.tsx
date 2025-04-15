@@ -12,6 +12,7 @@ import Calculator from "@/components/Calculator";
 import * as XLSX from "xlsx";
 import { FaCheckCircle, FaExclamationTriangle, FaPlus } from "react-icons/fa";
 import IntroPopup from "@/components/IntroPopup";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [step, setStep] = useState<"people" | "expenses" | "results">("people");
@@ -42,6 +43,14 @@ export default function Home() {
     const hasSeenIntro = localStorage.getItem("oddajhajs_seen_intro");
     if (!hasSeenIntro) {
       setShowIntroPopup(true);
+    }
+
+    // Aktualizuj krok na podstawie fragmentu URL
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#expenses") setStep("expenses");
+      if (hash === "#results") setStep("results");
+      if (hash === "#people" || hash === "") setStep("people");
     }
 
     // Tworzymy ukryty input dla plików
@@ -909,6 +918,14 @@ export default function Home() {
     }
   };
 
+  // Funkcja aktualizująca krok i fragment URL
+  const updateStep = (newStep: "people" | "expenses" | "results") => {
+    setStep(newStep);
+    if (typeof window !== "undefined") {
+      window.location.hash = newStep;
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
       <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-md">
@@ -972,7 +989,7 @@ export default function Home() {
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 {people.length >= 2 && (
                   <button
-                    onClick={() => setStep("expenses")}
+                    onClick={() => updateStep("expenses")}
                     className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                   >
                     <span>Teraz wrzuć wydatki →</span>
@@ -999,7 +1016,7 @@ export default function Home() {
                           d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
                         />
                       </svg>
-                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity duration-200">
+                      <div className="opacity-0 group-hover:opacity-100 absolute sm:bottom-full sm:top-auto top-full bottom-auto right-0 sm:mb-2 mt-2 sm:mt-0 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity duration-200 z-10">
                         <div className="flex flex-col items-center gap-1">
                           <span>Nie wiesz jak powinien wyglądać plik?</span>
                           <a
@@ -1013,8 +1030,8 @@ export default function Home() {
                             Pobierz przykład
                           </a>
                         </div>
-                        <div className="absolute bottom-0 right-2 transform translate-y-full">
-                          <div className="border-8 border-transparent border-t-gray-900"></div>
+                        <div className="absolute sm:bottom-0 top-0 right-2 sm:top-auto transform sm:translate-y-full sm:-translate-y-0 -translate-y-full">
+                          <div className="border-8 border-transparent sm:border-t-gray-900 border-b-gray-900 sm:border-b-transparent"></div>
                         </div>
                       </div>
                     </div>
@@ -1039,6 +1056,10 @@ export default function Home() {
                   Wyślij listę dłużników z kwotami - niech wiedzą ile hajsu mają
                   oddać 💸
                 </li>
+                <li>
+                  Zaloguj się, aby zapisywać rozliczenia w chmurze i tworzyć
+                  grupy ze znajomymi 🔐
+                </li>
               </ol>
             </div>
           </div>
@@ -1053,7 +1074,7 @@ export default function Home() {
                 </h1>
                 <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
                   <button
-                    onClick={() => setStep("people")}
+                    onClick={() => updateStep("people")}
                     className="w-full sm:w-auto px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                   >
                     ← Wróć do listy osób
@@ -1062,7 +1083,7 @@ export default function Home() {
                     <button
                       onClick={() => {
                         calculateSettlements(expenses);
-                        setStep("results");
+                        updateStep("results");
                       }}
                       className="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -1150,7 +1171,7 @@ export default function Home() {
           <div>
             <div className="mb-4 sm:flex sm:justify-end">
               <button
-                onClick={() => setStep("expenses")}
+                onClick={() => updateStep("expenses")}
                 className="w-full sm:w-auto px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 ← Wróć do wydatków

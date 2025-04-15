@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { NavbarProps } from "@/types";
+import LoginButton from "./LoginButton";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar({
   currentStep,
@@ -11,6 +13,7 @@ export default function Navbar({
   onShowCalculator,
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -65,7 +68,16 @@ export default function Navbar({
               </div>
             </div>
 
+            <div className="hidden sm:ml-6 sm:flex sm:items-center">
+              <LoginButton />
+            </div>
+
             <div className="-mr-2 flex items-center sm:hidden">
+              <div className="mr-2">
+                <div className="flex items-center">
+                  <LoginButton />
+                </div>
+              </div>
               <button
                 onClick={toggleMobileMenu}
                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
@@ -146,6 +158,32 @@ export default function Navbar({
                   {currentStep === "results" && "Krok 3: Wyniki"}
                 </span>
               </div>
+
+              {session && (
+                <div className="mt-3 space-y-1 border-t border-gray-700 pt-3">
+                  {session.user?.name && (
+                    <div className="px-3 pb-2 text-sm font-medium text-white">
+                      Zalogowany jako: {session.user.name}
+                    </div>
+                  )}
+                  <Link
+                    href="/dashboard"
+                    className="block w-full text-left px-3 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Moje ekipy
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut({ callbackUrl: "/" });
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
+                  >
+                    Wyloguj się
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -57,7 +57,15 @@ export default function Results({
   const [showShareOptions, setShowShareOptions] = useState(false);
 
   const getPersonName = (id: string) => {
-    return people.find((p) => p.id === id)?.name || id;
+    const person = people.find((p) => p.id === id);
+    if (!person) {
+      console.warn(`Nie znaleziono osoby o ID: ${id}`, {
+        availableIds: people.map((p) => p.id),
+        searchedId: id,
+      });
+      return id;
+    }
+    return person.name;
   };
 
   const handleUpdateExpense = (updatedExpense: Expense) => {
@@ -341,6 +349,30 @@ export default function Results({
         )}
       </div>
 
+      {showAddForm && (
+        <div className="bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white">
+              Wrzuć nowy wydatek do puli
+            </h2>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="text-gray-400 hover:text-gray-200"
+            >
+              <FaTimes className="w-6 h-6" />
+            </button>
+          </div>
+          <ExpenseForm
+            people={people}
+            onAddExpense={(expense) => {
+              onAddExpense(expense);
+              setShowAddForm(false);
+            }}
+            showToast={showToast}
+          />
+        </div>
+      )}
+
       <div className="bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">
           Kto komu płaci?
@@ -461,30 +493,6 @@ export default function Results({
           </div>
         )}
       </div>
-
-      {showAddForm && (
-        <div className="bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">
-              Wrzuć nowy wydatek do puli
-            </h2>
-            <button
-              onClick={() => setShowAddForm(false)}
-              className="text-gray-400 hover:text-gray-200"
-            >
-              <FaTimes className="w-6 h-6" />
-            </button>
-          </div>
-          <ExpenseForm
-            people={people}
-            onAddExpense={(expense) => {
-              onAddExpense(expense);
-              setShowAddForm(false);
-            }}
-            showToast={showToast}
-          />
-        </div>
-      )}
 
       <div className="bg-gray-800 rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-white">
