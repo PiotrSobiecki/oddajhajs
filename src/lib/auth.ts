@@ -300,21 +300,75 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    // Obsługa przekierowań - uproszczona wersja
+    // Obsługa przekierowań - rozszerzona wersja do obsługi zagnieżdżonych URL
     async redirect({ url, baseUrl }) {
       console.log("Sesja - Callback redirect:", { url, baseUrl });
 
+      // Sprawdź, czy URL zawiera zagnieżdżone przekierowania
+      if (url.includes("?callbackUrl=") || url.includes("&callbackUrl=")) {
+        try {
+          console.log("Wykryto zagnieżdżone przekierowanie w URL:", url);
+
+          // Jeśli URL zawiera error=Callback, przekieruj na stronę logowania
+          if (url.includes("error=Callback")) {
+            console.log("Wykryto error=Callback, przekierowuję na /login");
+            return `${baseUrl}/login`;
+          }
+
+          // Spróbuj wyodrębnić najgłębszy callbackUrl
+          const urlObj = new URL(url);
+          const params = new URLSearchParams(urlObj.search);
+          const nestedCallback = params.get("callbackUrl");
+
+          if (nestedCallback) {
+            console.log("Znaleziono zagnieżdżony callbackUrl:", nestedCallback);
+
+            // Spróbuj zdekodować zagnieżdżony URL
+            try {
+              const decodedCallback = decodeURIComponent(nestedCallback);
+              console.log("Zdekodowany callbackUrl:", decodedCallback);
+
+              // Jeśli zdekodowany URL zaczyna się od baseUrl, użyj go
+              if (
+                decodedCallback.startsWith(baseUrl) ||
+                decodedCallback.startsWith("/")
+              ) {
+                const finalUrl = decodedCallback.startsWith("/")
+                  ? `${baseUrl}${decodedCallback}`
+                  : decodedCallback;
+
+                console.log("Używam zdekodowanego callbackUrl:", finalUrl);
+                return finalUrl;
+              }
+            } catch (error) {
+              console.error("Błąd podczas dekodowania callbackUrl:", error);
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Błąd podczas przetwarzania zagnieżdżonego URL:",
+            error
+          );
+        }
+      }
+
+      // Podstawowa obsługa, jeśli zagnieżdżone przekierowanie nie zadziałało
+
       // Zwróć url, jeśli jest to względny URL (zaczyna się od /)
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+        const finalUrl = `${baseUrl}${url}`;
+        console.log("Przekierowuję na względny URL:", finalUrl);
+        return finalUrl;
       }
 
       // Zwróć url, jeśli należy do tej samej domeny
       if (url.startsWith(baseUrl)) {
+        console.log("Przekierowuję na URL z tej samej domeny:", url);
         return url;
       }
 
       // W przeciwnym razie przekieruj na stronę główną
+      console.log("Przekierowuję na domyślny baseUrl:", baseUrl);
       return baseUrl;
     },
 

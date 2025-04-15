@@ -24,24 +24,23 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
+
+    // Usuń wszystkie cookies związane z sesją
     try {
-      // Użyj minimum parametrów, bez callbackUrl
-      const result = await signIn("google", {
-        redirect: false,
+      document.cookie.split(";").forEach((cookie) => {
+        const [name] = cookie.trim().split("=");
+        if (name.includes("next-auth")) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+          console.log(`Usunięto cookie: ${name}`);
+        }
       });
+    } catch (e) {
+      console.error("Błąd podczas usuwania cookies:", e);
+    }
 
-      console.log("Odpowiedź z signIn:", result);
-
-      if (result?.error) {
-        console.error("Błąd podczas logowania:", result.error);
-        setIsLoading(false);
-      } else if (result?.url) {
-        // Ręczne przekierowanie po udanym logowaniu
-        console.log("Przekierowuję do:", result.url);
-        window.location.href = result.url;
-      } else {
-        setIsLoading(false);
-      }
+    try {
+      // Użyj bezpośredniego przekierowania na stronę logowania Google
+      window.location.href = "/api/auth/signin/google?callbackUrl=/dashboard";
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -100,12 +99,20 @@ function LoginContent() {
         {errorMessage && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-md text-white text-sm space-y-3">
             <p>{errorMessage}</p>
-            <button
-              onClick={() => (window.location.href = "/login")}
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              Odśwież stronę logowania
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => (window.location.href = "/login")}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                Odśwież stronę logowania
+              </button>
+              <button
+                onClick={() => (window.location.href = "/api/auth/debug-reset")}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Zresetuj sesję i wyczyść cookies
+              </button>
+            </div>
           </div>
         )}
 
