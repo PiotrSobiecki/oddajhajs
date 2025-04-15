@@ -12,18 +12,58 @@ function LoginContent() {
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
   const error = searchParams?.get("error");
 
+  // Debugowanie parametrów URL
+  useEffect(() => {
+    console.log("Parametry URL podczas logowania:", {
+      callbackUrl,
+      error,
+      wszystkieParametry: Object.fromEntries(searchParams?.entries() || []),
+    });
+  }, [callbackUrl, error, searchParams]);
+
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    await signIn("google", { callbackUrl });
+    console.log("Rozpoczynam logowanie przez Google...");
+    try {
+      await signIn("google", { callbackUrl });
+    } catch (error) {
+      console.error("Błąd podczas logowania:", error);
+      setIsLoading(false);
+    }
   };
 
   const getErrorMessage = () => {
+    console.log("Kod błędu:", error);
+
     if (error === "OAuthAccountNotLinked") {
       return "To konto e-mail jest już połączone z innym kontem. Użyj tego samego dostawcy, którego użyłeś wcześniej.";
     }
-    if (error) {
-      return "Wystąpił błąd podczas logowania. Spróbuj ponownie.";
+    if (error === "OAuthSignin") {
+      return "Błąd podczas inicjowania logowania OAuth. Sprawdź konfigurację.";
     }
+    if (error === "OAuthCallback") {
+      return "Błąd podczas odbierania danych z OAuth. Sprawdź zmienne środowiskowe i przekierowania.";
+    }
+    if (error === "OAuthCreateAccount") {
+      return "Nie można utworzyć konta użytkownika. Możliwe, że konto już istnieje.";
+    }
+    if (error === "EmailCreateAccount") {
+      return "Nie można utworzyć konta użytkownika. Możliwe, że konto już istnieje.";
+    }
+    if (error === "Callback") {
+      return "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania.";
+    }
+    if (error === "AccessDenied") {
+      return "Dostęp zabroniony. Nie masz uprawnień do zalogowania się.";
+    }
+    if (error === "Configuration") {
+      return "Błąd konfiguracji serwera. Skontaktuj się z administratorem.";
+    }
+
+    if (error) {
+      return `Wystąpił błąd podczas logowania (${error}). Spróbuj ponownie lub skontaktuj się z administratorem.`;
+    }
+
     return null;
   };
 

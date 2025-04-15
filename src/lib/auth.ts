@@ -187,6 +187,8 @@ export const authOptions: NextAuthOptions = {
       console.log("Sesja - Zdarzenie signIn:", {
         user: message.user.name || message.user.email,
         account: message.account?.provider,
+        isNewUser: message.isNewUser,
+        profile: message.profile ? "Dostępny" : "Brak",
       });
     },
     async signOut(message) {
@@ -197,6 +199,18 @@ export const authOptions: NextAuthOptions = {
     async session(message) {
       console.log("Sesja - Zdarzenie session (token refreshed)");
     },
+    async createUser(message) {
+      console.log("Sesja - Utworzono nowego użytkownika:", message.user.email);
+    },
+    async updateUser(message) {
+      console.log("Sesja - Zaktualizowano użytkownika:", message.user.email);
+    },
+    async linkAccount(message) {
+      console.log("Sesja - Połączono konto:", {
+        provider: message.account.provider,
+        user: message.user.email,
+      });
+    },
   },
 
   callbacks: {
@@ -205,6 +219,7 @@ export const authOptions: NextAuthOptions = {
         tokenExists: !!token,
         accountExists: !!account,
         userExists: !!user,
+        tokenData: token ? { sub: token.sub, email: token.email } : null,
       });
 
       // JWT callback powinien zwracać token, nie session
@@ -215,12 +230,48 @@ export const authOptions: NextAuthOptions = {
       console.log("Sesja - Callback session:", {
         sessionExists: !!session,
         tokenExists: !!token,
+        sessionUser: session?.user?.email,
+        tokenSub: token?.sub,
       });
 
       if (token && session.user) {
         session.user.id = token.sub!;
       }
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      console.log("Sesja - Callback redirect:", { url, baseUrl });
+
+      // Sprawdź czy adres URL zaczyna się od baseUrl lub '/'
+      if (url.startsWith(baseUrl) || url.startsWith("/")) {
+        return url;
+      }
+      // W przeciwnym razie przekieruj na stronę główną
+      return baseUrl;
+    },
+
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log("Sesja - Callback signIn:", {
+        user: user?.email,
+        account: account?.provider,
+        profile: profile ? "Dostępny" : "Brak",
+        email: email ? "Dostępny" : "Brak",
+        credentials: credentials ? "Dostępny" : "Brak",
+      });
+
+      // Dodajmy logowanie błędów na wypadek problemów
+      try {
+        // Sprawdźmy, czy wszystkie wymagane zmienne środowiskowe są dostępne
+        if (!nextAuthUrl) {
+          console.error("NEXTAUTH_URL nie jest dostępny!");
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Błąd podczas logowania:", error);
+        return false;
+      }
     },
   },
   pages: {
