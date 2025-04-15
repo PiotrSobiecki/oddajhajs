@@ -185,10 +185,8 @@ export const authOptions: NextAuthOptions = {
         userExists: !!user,
       });
 
-      if (token && session.user) {
-        session.user.id = token.sub!;
-      }
-      return session;
+      // JWT callback powinien zwracać token, nie session
+      return token;
     },
 
     async session({ session, token }) {
