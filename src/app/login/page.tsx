@@ -26,16 +26,21 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
 
-    // Usuwamy usuwanie cookies - może to powodować problemy z autentykacją
-
     try {
-      console.log("Używam standardowej metody signIn z NextAuth");
+      // Zamiast używać signIn, które wywołuje fetch, użyjmy w pełni kontrolowanego podejścia
+      console.log("Przekierowuję bezpośrednio na endpoint Google OAuth");
 
-      // Użyj standardowej metody signIn z callbackUrl ustawionym na dashboard
-      // Z dokumentacji NextAuth - to jest zalecany sposób logowania
-      await signIn("google", {
-        callbackUrl: "/dashboard",
-      });
+      // Używamy pełnego URL, aby uniknąć problemów z względnymi ścieżkami
+      const host = window.location.host; // np. oddajhajs.org
+      const protocol = window.location.protocol; // https:
+      const fullUrl = `${protocol}//${host}/api/auth/signin/google?callbackUrl=${encodeURIComponent(
+        "/dashboard"
+      )}`;
+
+      console.log("Przekierowuję na:", fullUrl);
+
+      // Przekierowanie przeglądarki
+      window.location.href = fullUrl;
 
       // Ten kod nie zostanie wykonany z powodu przekierowania
     } catch (error) {
@@ -157,6 +162,18 @@ function LoginContent() {
             <span>
               {isLoading ? "Logowanie..." : "Zaloguj się przez Google"}
             </span>
+          </button>
+
+          <button
+            onClick={() => {
+              const host = window.location.host;
+              const protocol = window.location.protocol;
+              window.location.href = `${protocol}//${host}/api/auth/manual-google-auth?callbackUrl=/dashboard`;
+            }}
+            className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+          >
+            <FaGoogle />
+            <span>Alternatywne logowanie (ręczne)</span>
           </button>
         </div>
 

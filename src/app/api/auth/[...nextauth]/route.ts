@@ -107,6 +107,53 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
     }
   }
 
+  // Jeśli to endpoint do logowania przez Google, dodaj szczegółowe debugowanie
+  if (origUrl.pathname.includes("/signin/google")) {
+    console.log("Auth Route - Debugowanie signin Google:");
+    console.log("  - Pełny URL:", req.url);
+    console.log("  - Metoda:", req.method);
+    console.log("  - Parametry:", Object.fromEntries(origUrl.searchParams));
+
+    // Sprawdź szczegóły nagłówków
+    console.log("  - Ważne nagłówki:");
+    const importantHeaders = [
+      "host",
+      "referer",
+      "origin",
+      "content-type",
+      "content-length",
+      "accept",
+    ];
+    importantHeaders.forEach((header) => {
+      console.log(`    - ${header}: ${req.headers.get(header) || "brak"}`);
+    });
+
+    // Sprawdź nagłówki X-Forwarded
+    console.log("  - Nagłówki przekierowań:");
+    [
+      "x-forwarded-host",
+      "x-forwarded-proto",
+      "x-forwarded-for",
+      "x-real-ip",
+    ].forEach((header) => {
+      console.log(`    - ${header}: ${req.headers.get(header) || "brak"}`);
+    });
+
+    // Próba odczytania ciasteczek
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      console.log("  - Cookies:");
+      cookieHeader.split(";").forEach((cookie) => {
+        const [name, value] = cookie.trim().split("=");
+        if (name) {
+          console.log(`    - ${name}: ${value?.substring(0, 15) || ""}...`);
+        }
+      });
+    } else {
+      console.log("  - Brak cookies w żądaniu!");
+    }
+  }
+
   try {
     // Wywołanie oryginalnego handlera
     console.log("Auth Route - Wywołuję handler NextAuth...");
