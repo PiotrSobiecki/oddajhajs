@@ -25,10 +25,8 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
     try {
-      // Użyj prostszego parametru callbackUrl (tylko dashboard)
-      // i dodaj parametr redirect=false, aby mieć większą kontrolę nad przekierowaniem
+      // Użyj minimum parametrów, bez callbackUrl
       const result = await signIn("google", {
-        callbackUrl: "/dashboard",
         redirect: false,
       });
 
@@ -37,7 +35,6 @@ function LoginContent() {
       if (result?.error) {
         console.error("Błąd podczas logowania:", result.error);
         setIsLoading(false);
-        // Przekierowanie będzie obsłużone automatycznie
       } else if (result?.url) {
         // Ręczne przekierowanie po udanym logowaniu
         console.log("Przekierowuję do:", result.url);
@@ -101,8 +98,14 @@ function LoginContent() {
         </div>
 
         {errorMessage && (
-          <div className="p-4 bg-red-900/50 border border-red-500 rounded-md text-white text-sm">
-            {errorMessage}
+          <div className="p-4 bg-red-900/50 border border-red-500 rounded-md text-white text-sm space-y-3">
+            <p>{errorMessage}</p>
+            <button
+              onClick={() => (window.location.href = "/login")}
+              className="text-blue-400 hover:text-blue-300 text-sm"
+            >
+              Odśwież stronę logowania
+            </button>
           </div>
         )}
 

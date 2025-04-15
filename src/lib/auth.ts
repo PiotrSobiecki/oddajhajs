@@ -2,6 +2,25 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
+import { JWT } from "next-auth/jwt";
+
+// Rozszerzamy typy NextAuth, aby obsługiwać dodatkowe pola w tokenie
+declare module "next-auth/jwt" {
+  interface JWT {
+    userId?: string;
+  }
+}
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  }
+}
 
 // Funkcja pomocnicza do debugowania zmiennych środowiskowych
 export function logEnvVariables() {
@@ -131,7 +150,6 @@ if (googleCredentialsAvailable) {
   );
 
   // Wyświetl callback URL
-  const nextAuthUrl = process.env.NEXTAUTH_URL || "";
   const callbackUrl = `${nextAuthUrl}/api/auth/callback/google`;
   console.log(`✅ Callback URL dla Google OAuth: ${callbackUrl}`);
 
@@ -140,6 +158,14 @@ if (googleCredentialsAvailable) {
       clientId: googleClientId,
       clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+          scope: "openid email profile",
+        },
+      },
     })
   );
 } else {
@@ -219,10 +245,13 @@ export const authOptions: NextAuthOptions = {
         tokenExists: !!token,
         accountExists: !!account,
         userExists: !!user,
-        tokenData: token ? { sub: token.sub, email: token.email } : null,
       });
 
-      // JWT callback powinien zwracać token, nie session
+      // Zachowaj podstawowe informacje o użytkowniku
+      if (account && user) {
+        token.userId = user.id;
+      }
+
       return token;
     },
 
@@ -230,83 +259,51 @@ export const authOptions: NextAuthOptions = {
       console.log("Sesja - Callback session:", {
         sessionExists: !!session,
         tokenExists: !!token,
-        sessionUser: session?.user?.email,
-        tokenSub: token?.sub,
       });
 
       if (token && session.user) {
-        session.user.id = token.sub!;
+        session.user.id = token.userId || token.sub!;
       }
+
       return session;
     },
 
+    // Uproszczona obsługa przekierowań
     async redirect({ url, baseUrl }) {
       console.log("Sesja - Callback redirect:", { url, baseUrl });
-      console.log("Porównuję URL:", {
-        url,
-        baseUrl,
-        startsWith1: url.startsWith(baseUrl),
-        startsWith2: url.startsWith("/"),
-      });
 
-      // W przypadku błędu przekieruj na stronę logowania z informacją o błędzie
-      if (url.includes("error=")) {
-        console.log(`⚠️ Wykryto błąd w URL: ${url}`);
-        return `${baseUrl}/login?${url.split("?")[1] || ""}`;
-      }
+      // Obsługa http/https
+      if (baseUrl.startsWith("http://") && url.startsWith("https://")) {
+        const httpBaseUrl = baseUrl;
+        const httpsBaseUrl = baseUrl.replace("http://", "https://");
 
-      // Sprawdź czy URL jest bezwzględny (zawiera protokół)
-      if (url.match(/^https?:\/\//)) {
-        // Sprawdź domenę - jeśli jest taka sama jak baseUrl, pozwól na przekierowanie
-        const urlDomain = new URL(url).hostname;
-        const baseDomain = new URL(baseUrl).hostname;
+        console.log(`Porównuję HTTP/HTTPS URL:`, {
+          httpBaseUrl,
+          httpsBaseUrl,
+          url,
+        });
 
-        console.log(`Porównuję domeny: ${urlDomain} vs ${baseDomain}`);
-
-        if (urlDomain === baseDomain) {
-          console.log(`✅ Domeny zgodne, przekierowuję na ${url}`);
+        // Sprawdź czy URL pasuje do wersji HTTPS baseUrl
+        if (url.startsWith(httpsBaseUrl)) {
+          console.log(`✅ URL zgodny z HTTPS wersją baseUrl: ${url}`);
           return url;
         }
-
-        console.log(
-          `⚠️ Różne domeny, przekierowuję na bezpieczny URL: ${baseUrl}`
-        );
-        return baseUrl;
       }
 
-      // Jeśli URL jest względny, pozwól na przekierowanie
-      if (url.startsWith("/")) {
-        const fullUrl = `${baseUrl}${url}`;
-        console.log(`✅ Przekierowuję na względny URL: ${fullUrl}`);
-        return fullUrl;
+      // Standardowa obsługa
+      if (url.startsWith(baseUrl) || url.startsWith("/")) {
+        console.log(`✅ Standardowe przekierowanie: ${url}`);
+        return url;
       }
 
-      // W każdym innym przypadku, użyj baseUrl
-      console.log(`⚠️ Używam domyślnego baseUrl: ${baseUrl}`);
+      console.log(`⚠️ Przekierowanie na domyślny baseUrl: ${baseUrl}`);
       return baseUrl;
     },
 
-    async signIn({ user, account, profile, email, credentials }) {
-      console.log("Sesja - Callback signIn:", {
-        user: user?.email,
-        account: account?.provider,
-        profile: profile ? "Dostępny" : "Brak",
-        email: email ? "Dostępny" : "Brak",
-        credentials: credentials ? "Dostępny" : "Brak",
-      });
-
-      // Dodajmy logowanie błędów na wypadek problemów
-      try {
-        // Sprawdźmy, czy wszystkie wymagane zmienne środowiskowe są dostępne
-        if (!nextAuthUrl) {
-          console.error("NEXTAUTH_URL nie jest dostępny!");
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Błąd podczas logowania:", error);
-        return false;
-      }
+    // Prosta walidacja logowania
+    async signIn({ user }) {
+      console.log("Sesja - Callback signIn dla użytkownika:", user?.email);
+      return true;
     },
   },
   pages: {
