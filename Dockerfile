@@ -5,17 +5,17 @@ WORKDIR /app
 # Kopiuj pliki package.json i package-lock.json
 COPY package*.json ./
 
-# Najpierw kopiujemy katalog prisma, żeby mieć dostęp do schematu
+# Kopiuj plik .env.production
+COPY .env.production ./.env.production
+
+# Kopiuj katalog prisma
 COPY prisma ./prisma/
 
-# Kopiuj plik .env.production do użycia podczas budowania
-COPY .env.production ./
+# Kopiuj skrypty pomocnicze
+COPY healthcheck.js ./
 
-# Kopiuj skrypt startowy
-COPY start.sh ./
-
-# Instaluj zależności
-RUN npm ci
+# Instaluj zależności - dodajemy --production=false, aby zainstalować także devDependencies
+RUN npm ci --production=false
 
 # Generuj typy Prisma
 RUN npx prisma generate
@@ -23,33 +23,26 @@ RUN npx prisma generate
 # Kopiuj pozostałe pliki
 COPY . .
 
-# Pokazujemy zmienne środowiskowe widoczne podczas budowania (tylko nazwy)
-RUN echo "Zmienne środowiskowe dostępne podczas budowania:" && \
-    env | grep -E '^(GOOGLE_|NEXTAUTH_|DATABASE_)' | cut -d= -f1 || echo "Brak zmiennych środowiskowych"
-
-# Zmienna środowiskowa dla Next.js
-ENV NEXT_TELEMETRY_DISABLED 1
+# Zmienne środowiskowe
 ENV NODE_ENV production
 ENV PORT 3000
 
-# Buduj aplikację (używa .env.production)
+# Buduj aplikację
 RUN npm run build
-
-# Upewnij się, że katalog prisma jest dostępny
-RUN ls -la /app/prisma/
-
-# Nadaj uprawnienia wykonywania dla skryptu startowego
-RUN chmod +x /app/start.sh
 
 # Eksponuj port
 EXPOSE 3000
 
-# Utwórz skrypt, który wyświetli redirect_uri używany przez NextAuth 
-RUN echo '#!/bin/sh' > /app/show-redirect.sh && \
-    echo 'echo "NEXTAUTH_URL: $NEXTAUTH_URL"' >> /app/show-redirect.sh && \
-    echo 'echo "Callback URL: ${NEXTAUTH_URL}/api/auth/callback/google"' >> /app/show-redirect.sh && \
-    chmod +x /app/show-redirect.sh && \
-    cat /app/show-redirect.sh
+# Skrypt entrypoint dla bezpiecznego uruchamiania aplikacji
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
+    echo 'echo "Sprawdzanie zmiennych środowiskowych:"' >> /app/entrypoint.sh && \
+    echo 'node /app/healthcheck.js' >> /app/entrypoint.sh && \
+    echo 'echo "Uruchamianie migracji..."' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
+    echo 'echo "Uruchamianie serwera..."' >> /app/entrypoint.sh && \
+    echo 'npm start' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
-# Uruchom migracje i aplikację - wcześniej wyświetl informacje o callback URL
-CMD /app/show-redirect.sh && /app/start.sh 
+# Komenda startowa
+CMD ["/app/entrypoint.sh"] 
