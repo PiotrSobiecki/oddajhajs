@@ -1,20 +1,10 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
 import { JWT } from "next-auth/jwt";
 
-// Definiujemy typ dla tablicy dostawców
-type ProviderArray = ReturnType<typeof GoogleProvider>[];
-
-// Rozszerzamy typy NextAuth, aby obsługiwać dodatkowe pola w tokenie
-declare module "next-auth/jwt" {
-  interface JWT {
-    userId?: string;
-    email?: string;
-  }
-}
-
+// Rozszerzamy typy NextAuth, aby obsługiwać dodatkowe pola
 declare module "next-auth" {
   interface Session {
     user: {
@@ -26,141 +16,80 @@ declare module "next-auth" {
   }
 }
 
-// Funkcja pomocnicza do debugowania zmiennych środowiskowych
-export function logEnvVariables() {
-  // Sprawdź i wyświetl informacje o zmiennych środowiskowych (tylko w konsoli)
-  console.log("========== NEXTAUTH ZMIENNE ŚRODOWISKOWE ==========");
-  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(
-    `GOOGLE_CLIENT_ID: ${
-      process.env.GOOGLE_CLIENT_ID
-        ? `Ustawione (długość: ${process.env.GOOGLE_CLIENT_ID.length})`
-        : "Brak"
-    }`
-  );
-  console.log(
-    `GOOGLE_CLIENT_SECRET: ${
-      process.env.GOOGLE_CLIENT_SECRET
-        ? `Ustawione (długość: ${process.env.GOOGLE_CLIENT_SECRET.length})`
-        : "Brak"
-    }`
-  );
-  console.log(`NEXTAUTH_URL: ${process.env.NEXTAUTH_URL || "Brak"}`);
-  console.log(
-    `NEXTAUTH_SECRET: ${
-      process.env.NEXTAUTH_SECRET
-        ? `Ustawione (długość: ${process.env.NEXTAUTH_SECRET.length})`
-        : "Brak"
-    }`
-  );
-  console.log(
-    `DATABASE_URL: ${
-      process.env.DATABASE_URL
-        ? `Ustawione (długość: ${process.env.DATABASE_URL.length})`
-        : "Brak"
-    }`
-  );
-
-  // Lista wszystkich dostępnych zmiennych środowiskowych
-  console.log("Wszystkie zmienne środowiskowe RAILWAY_*:");
-  Object.keys(process.env)
-    .filter((key) => key.startsWith("RAILWAY_"))
-    .forEach((key) => console.log(`- ${key}`));
-
-  console.log("====================================================");
-
-  // Dodajemy dodatkowe debugowanie
-  console.log("Sesja - Zmienne środowiskowe:");
-  console.log(`- NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`- NEXTAUTH_URL dostępny: ${!!process.env.NEXTAUTH_URL}`);
-  console.log(`- NEXTAUTH_SECRET dostępny: ${!!process.env.NEXTAUTH_SECRET}`);
-  console.log(`- DATABASE_URL dostępny: ${!!process.env.DATABASE_URL}`);
-
-  const googleClientId = process.env.GOOGLE_CLIENT_ID;
-  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  console.log(
-    `- GOOGLE_CLIENT_ID dostępny: ${!!googleClientId}, długość: ${
-      googleClientId?.length || 0
-    }`
-  );
-  console.log(
-    `- GOOGLE_CLIENT_SECRET dostępny: ${!!googleClientSecret}, długość: ${
-      googleClientSecret?.length || 0
-    }`
-  );
+declare module "next-auth/jwt" {
+  interface JWT {
+    userId?: string;
+  }
 }
 
-// Wyświetl informacje o zmiennych środowiskowych przy uruchomieniu
-logEnvVariables();
-
-// Funkcja pomocnicza do oczyszczania zmiennych środowiskowych z cudzysłowów
-export function cleanEnv(value: string | undefined): string {
-  if (!value) return "";
-
-  // Usuń cudzysłowy z początku i końca
-  let cleaned = value.trim();
-  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-    cleaned = cleaned.substring(1, cleaned.length - 1);
-  }
-
-  // Sprawdź, czy wartość to placeholder (używamy nowych placeholderów)
-  const placeholders = [
-    "placeholder_id_for_build_time",
-    "placeholder_secret_for_build_time",
-    "placeholder_db_url_for_build_time",
-    "dummy_id_for_build_time",
-    "dummy_secret_for_build_time",
-    "dummy_db_url_for_build_time",
-  ];
-
-  if (placeholders.some((placeholder) => cleaned.includes(placeholder))) {
-    console.error(
-      `⚠️ UWAGA: Zmienna środowiskowa zawiera placeholder: ${cleaned.substring(
-        0,
-        10
-      )}...`
-    );
-    console.error(
-      `To oznacza, że zmienne z Railway nie są poprawnie przekazywane do aplikacji!`
-    );
-    return "";
-  }
-
-  return cleaned;
+// Funkcja pomocnicza do usuwania cudzysłowów z wartości
+function cleanEnv(value: string | undefined): string | undefined {
+  if (!value) return value;
+  return value.replace(/^['"](.*)['"]$/, "$1");
 }
 
-// Sprawdzanie i ustawianie zmiennych środowiskowych z wartościami domyślnymi
-const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-const nextAuthUrl =
-  process.env.NEXTAUTH_URL ||
-  (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
+// Pobierz zmienne środowiskowe i oczyść je z cudzysłowów
+const googleClientId = cleanEnv(process.env.GOOGLE_CLIENT_ID) || "";
+const googleClientSecret = cleanEnv(process.env.GOOGLE_CLIENT_SECRET) || "";
 const nextAuthSecret =
-  process.env.NEXTAUTH_SECRET || "fallback_dev_secret_do_not_use_in_production";
+  cleanEnv(process.env.NEXTAUTH_SECRET) ||
+  "fallback-secret-do-not-use-in-production";
+const nextAuthUrl = cleanEnv(process.env.NEXTAUTH_URL) || "";
 
-// Log zmiennych środowiskowych (tylko do debugowania)
-console.log("=== Zmienne środowiskowe NextAuth ===");
-console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`NEXTAUTH_URL: ${nextAuthUrl || "Brak"}`);
-console.log(`NEXTAUTH_SECRET dostępny: ${!!process.env.NEXTAUTH_SECRET}`);
+// Wyświetl szczegółowe informacje o zmiennych po oczyszczeniu
+console.log("=== ZMIENNE ŚRODOWISKOWE NEXTAUTH (po oczyszczeniu) ===");
+console.log(`NEXTAUTH_URL: ${nextAuthUrl}`);
 console.log(
-  `GOOGLE_CLIENT_ID dostępny: ${!!googleClientId}, długość: ${
-    googleClientId.length
+  `GOOGLE_CLIENT_ID: ${
+    googleClientId
+      ? `${googleClientId.substring(0, 10)}... (${
+          googleClientId.length
+        } znaków)`
+      : "BRAK"
   }`
 );
 console.log(
-  `GOOGLE_CLIENT_SECRET dostępny: ${!!googleClientSecret}, długość: ${
-    googleClientSecret.length
+  `GOOGLE_CLIENT_SECRET: ${
+    googleClientSecret
+      ? `${googleClientSecret.substring(0, 5)}... (${
+          googleClientSecret.length
+        } znaków)`
+      : "BRAK"
   }`
 );
+console.log("======================================================");
 
-// Przygotuj tablicę dostawców
-const providers: ProviderArray = [];
+// Sprawdź, czy mamy rzeczywiste wartości (nie domyślne z .env.production)
+const isDummyId = googleClientId.includes("dummy_id_for_build_time");
+const isDummySecret = googleClientSecret.includes(
+  "dummy_secret_for_build_time"
+);
 
-// Dodajmy Google provider tylko jeśli mamy dostępne zmienne
-if (googleClientId && googleClientSecret) {
-  console.log("Dodaję GoogleProvider - zmienne są dostępne");
+// Sprawdzenie czy mamy poprawne dane Google OAuth
+const googleCredentialsAvailable =
+  !isDummyId &&
+  !isDummySecret &&
+  googleClientId.length > 0 &&
+  googleClientSecret.length > 0;
+
+// Przygotuj listę providers
+const providers = [];
+
+// Dodaj Google provider tylko jeśli zmienne środowiskowe są dostępne
+if (googleCredentialsAvailable) {
+  console.log("✅ Konfiguracja Google OAuth dostępna. Dodawanie providera.");
+  console.log(
+    `   ID: ${googleClientId.substring(
+      0,
+      5
+    )}... Secret: ${googleClientSecret.substring(0, 3)}...`
+  );
+
+  // Wyświetl callback URL
+  const callbackUrl = `${nextAuthUrl}/api/auth/callback/google`;
+  console.log(`✅ Callback URL dla Google OAuth: ${callbackUrl}`);
+
+  // Dodajmy Google provider
   providers.push(
     GoogleProvider({
       clientId: googleClientId,
@@ -169,8 +98,33 @@ if (googleClientId && googleClientSecret) {
   );
 } else {
   console.log(
-    "⚠️ Zmienne GOOGLE_CLIENT_ID lub GOOGLE_CLIENT_SECRET nie są dostępne - GoogleProvider nie zostanie dodany"
+    "❌ UWAGA: Brak konfiguracji Google OAuth. Logowanie przez Google będzie niedostępne."
   );
+  console.log(
+    `   GOOGLE_CLIENT_ID: ${
+      isDummyId
+        ? "Wartość domyślna (dummy)"
+        : googleClientId
+        ? "Ustawione"
+        : "Brak"
+    } (${googleClientId.length} znaków)`
+  );
+  console.log(
+    `   GOOGLE_CLIENT_SECRET: ${
+      isDummySecret
+        ? "Wartość domyślna (dummy)"
+        : googleClientSecret
+        ? "Ustawione"
+        : "Brak"
+    } (${googleClientSecret.length} znaków)`
+  );
+
+  if (isDummyId)
+    console.log(`   ID zawiera 'dummy_id_for_build_time': ${isDummyId}`);
+  if (isDummySecret)
+    console.log(
+      `   Secret zawiera 'dummy_secret_for_build_time': ${isDummySecret}`
+    );
 }
 
 export const authOptions: NextAuthOptions = {
@@ -199,116 +153,36 @@ export const authOptions: NextAuthOptions = {
   // Włącz tryb debug
   debug: true,
 
-  // Dodajmy funkcje wywoływane na różnych etapach autoryzacji
-  events: {
-    signIn: ({ user, account, isNewUser }) => {
-      console.log("Zalogowano użytkownika:", {
-        userId: user.id,
-        email: user.email,
-        isNewUser,
-        provider: account?.provider,
-      });
-    },
-    signOut: ({ session, token }) => {
-      console.log("Wylogowano użytkownika:", {
-        userId: session?.user?.id,
-        email: session?.user?.email,
-      });
-    },
-    session: ({ session, token }) => {
-      console.log("Zaktualizowano sesję:", {
-        userId: session?.user?.id,
-        email: session?.user?.email,
-      });
-    },
-  },
-
   // Callbacki
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      console.log("Sign In callback:", {
-        userExists: !!user,
-        accountExists: !!account,
-        profileExists: !!profile,
-      });
-      return true;
-    },
-    async jwt({ token, user, account }) {
-      console.log("JWT callback:", {
-        tokenExists: !!token,
-        userExists: !!user,
-        accountExists: !!account,
-        tokenSub: token?.sub,
-      });
+    jwt: async ({ token, user }) => {
+      console.log("JWT Callback - token exists:", !!token);
+      console.log("JWT Callback - user exists:", !!user);
 
-      // Dodaj userId do tokenu, jeśli mamy użytkownika
       if (user) {
+        console.log("JWT Callback - setting userId:", user.id);
         token.userId = user.id;
       }
+
       return token;
     },
-    async session({ session, token }) {
-      console.log("Session callback:", {
-        sessionExists: !!session,
-        tokenExists: !!token,
-        tokenUserId: token?.userId,
-        tokenEmail: token?.email,
-        tokenSub: token?.sub,
-      });
+    session: async ({ session, token }) => {
+      console.log("Session Callback - session exists:", !!session);
+      console.log("Session Callback - token exists:", !!token);
+      console.log("Session Callback - token userId:", token.userId);
+      console.log("Session Callback - token email:", token.email);
+      console.log("Session Callback - token userId type:", typeof token.userId);
+      console.log("Session Callback - session user before:", session.user);
 
       if (token && token.userId) {
-        session.user.id = token.userId as string;
-        console.log("Session updated with user id:", token.userId);
+        session.user.id = token.userId;
+        console.log(
+          "Session Callback - session user after update:",
+          session.user
+        );
       }
 
       return session;
-    },
-
-    // Własna funkcja obsługi przekierowań (kluczowe dla rozwiązania problemu)
-    async redirect({ url, baseUrl }) {
-      console.log("REDIRECT CALLBACK:", { url, baseUrl });
-
-      // Dodajemy specjalną obsługę adresów URL z przekierowaniami
-      // Sprawdzamy, czy URL jest bezwzględny czy względny
-      if (url.startsWith("/")) {
-        // URL względny, dołączamy baseUrl
-        const absoluteUrl = `${baseUrl}${url}`;
-        console.log("Względny URL przekształcony na bezwzględny:", absoluteUrl);
-        return absoluteUrl;
-      }
-
-      // Sprawdź, czy URL zawiera protokół - jeśli tak, to jest już bezwzględny
-      if (url.startsWith("http")) {
-        // Sprawdź, czy URL jest na tej samej domenie co aplikacja
-        const urlObj = new URL(url);
-        const baseUrlObj = new URL(baseUrl);
-
-        // Jeśli domeny się zgadzają, przekieruj do danego URL
-        if (urlObj.hostname === baseUrlObj.hostname) {
-          console.log("Przekierowanie do URL na tej samej domenie:", url);
-          return url;
-        }
-
-        // Jeśli to adres callbacka, pozwól na przekierowanie
-        if (url.includes("/api/auth/callback/")) {
-          console.log("Przekierowanie do callbacka OAuth:", url);
-          return url;
-        }
-
-        // W przypadku zewnętrznych adresów URL, przekieruj do strony głównej
-        console.log(
-          "Próba przekierowania do zewnętrznego URL, używam baseUrl:",
-          baseUrl
-        );
-        return baseUrl;
-      }
-
-      // W przypadku innych adresów URL, użyj domyślnego zachowania
-      console.log(
-        "Domyślne przekierowanie do dashboard:",
-        `${baseUrl}/dashboard`
-      );
-      return `${baseUrl}/dashboard`;
     },
   },
 
