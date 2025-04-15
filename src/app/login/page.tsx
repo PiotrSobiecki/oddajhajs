@@ -1,7 +1,7 @@
+"use client";
+
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
-
-("use client");
 
 import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
