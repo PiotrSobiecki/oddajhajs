@@ -242,12 +242,47 @@ export const authOptions: NextAuthOptions = {
 
     async redirect({ url, baseUrl }) {
       console.log("Sesja - Callback redirect:", { url, baseUrl });
+      console.log("Porównuję URL:", {
+        url,
+        baseUrl,
+        startsWith1: url.startsWith(baseUrl),
+        startsWith2: url.startsWith("/"),
+      });
 
-      // Sprawdź czy adres URL zaczyna się od baseUrl lub '/'
-      if (url.startsWith(baseUrl) || url.startsWith("/")) {
-        return url;
+      // W przypadku błędu przekieruj na stronę logowania z informacją o błędzie
+      if (url.includes("error=")) {
+        console.log(`⚠️ Wykryto błąd w URL: ${url}`);
+        return `${baseUrl}/login?${url.split("?")[1] || ""}`;
       }
-      // W przeciwnym razie przekieruj na stronę główną
+
+      // Sprawdź czy URL jest bezwzględny (zawiera protokół)
+      if (url.match(/^https?:\/\//)) {
+        // Sprawdź domenę - jeśli jest taka sama jak baseUrl, pozwól na przekierowanie
+        const urlDomain = new URL(url).hostname;
+        const baseDomain = new URL(baseUrl).hostname;
+
+        console.log(`Porównuję domeny: ${urlDomain} vs ${baseDomain}`);
+
+        if (urlDomain === baseDomain) {
+          console.log(`✅ Domeny zgodne, przekierowuję na ${url}`);
+          return url;
+        }
+
+        console.log(
+          `⚠️ Różne domeny, przekierowuję na bezpieczny URL: ${baseUrl}`
+        );
+        return baseUrl;
+      }
+
+      // Jeśli URL jest względny, pozwól na przekierowanie
+      if (url.startsWith("/")) {
+        const fullUrl = `${baseUrl}${url}`;
+        console.log(`✅ Przekierowuję na względny URL: ${fullUrl}`);
+        return fullUrl;
+      }
+
+      // W każdym innym przypadku, użyj baseUrl
+      console.log(`⚠️ Używam domyślnego baseUrl: ${baseUrl}`);
       return baseUrl;
     },
 

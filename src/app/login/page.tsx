@@ -25,9 +25,28 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
     try {
-      await signIn("google", { callbackUrl });
+      // Użyj prostszego parametru callbackUrl (tylko dashboard)
+      // i dodaj parametr redirect=false, aby mieć większą kontrolę nad przekierowaniem
+      const result = await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+
+      console.log("Odpowiedź z signIn:", result);
+
+      if (result?.error) {
+        console.error("Błąd podczas logowania:", result.error);
+        setIsLoading(false);
+        // Przekierowanie będzie obsłużone automatycznie
+      } else if (result?.url) {
+        // Ręczne przekierowanie po udanym logowaniu
+        console.log("Przekierowuję do:", result.url);
+        window.location.href = result.url;
+      } else {
+        setIsLoading(false);
+      }
     } catch (error) {
-      console.error("Błąd podczas logowania:", error);
+      console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
     }
   };
