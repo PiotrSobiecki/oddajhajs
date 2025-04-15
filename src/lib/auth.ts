@@ -193,7 +193,10 @@ if (googleCredentialsAvailable) {
       clientId: googleClientId,
       clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
+
+      // Dodajemy pełną i explicite konfigurację, żeby mieć pewność
       authorization: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
           prompt: "select_account",
           access_type: "offline",
@@ -201,6 +204,7 @@ if (googleCredentialsAvailable) {
           scope: "openid profile email",
         },
       },
+
       // Logujemy więcej informacji o procesie logowania
       async profile(profile, tokens) {
         console.log("Google profile callback:", {
@@ -209,6 +213,7 @@ if (googleCredentialsAvailable) {
           profileEmail: profile.email,
           serverUrl: nextAuthUrl,
           tokensAvailable: !!tokens,
+          tokensType: tokens.token_type,
           tokensExpiry: tokens.expiry_date,
           tokenScope: tokens.scope,
         });
@@ -342,6 +347,36 @@ export const authOptions: NextAuthOptions = {
       }
 
       return session;
+    },
+
+    // Dodajemy obsługę redirect, żeby lepiej kontrolować przekierowania
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect callback wywołany z:", { url, baseUrl });
+
+      // Sprawdź, czy URL zaczyna się od baseUrl
+      if (url.startsWith(baseUrl)) {
+        console.log("Przekierowanie do URL w domenie aplikacji:", url);
+        return url;
+      }
+      // Jeśli jest to względny URL (rozpoczyna się od /)
+      else if (url.startsWith("/")) {
+        console.log("Przekierowanie do względnego URL:", `${baseUrl}${url}`);
+        return `${baseUrl}${url}`;
+      }
+
+      // Sprawdź, czy to callback URL z Google
+      if (url.includes("/api/auth/callback/")) {
+        console.log("Otrzymano callback z providera OAuth:", url);
+        // Zachowaj ten URL, to prawidłowy callback z Google
+        return url;
+      }
+
+      // W innych przypadkach przekieruj do dashboard
+      console.log(
+        "Przekierowanie do domyślnego URL (dashboard):",
+        `${baseUrl}/dashboard`
+      );
+      return `${baseUrl}/dashboard`;
     },
   },
 

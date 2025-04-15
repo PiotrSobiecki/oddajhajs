@@ -52,7 +52,31 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
     console.log("Auth Route - Debugowanie callbacka:");
     console.log("  - Pełny URL:", req.url);
     console.log("  - Parametry:", Object.fromEntries(url.searchParams));
-    console.log("  - Headers:", Object.fromEntries(req.headers));
+
+    // Próba odczytania ciasteczek z zapytania
+    const cookieHeader = req.headers.get("cookie");
+    console.log("  - Cookie Header:", cookieHeader);
+
+    // Sprawdzamy, czy mamy token stanu OAuth
+    const stateParam = url.searchParams.get("state");
+    console.log("  - OAuth state param:", stateParam);
+
+    // Sprawdzamy, czy mamy kod autoryzacji OAuth
+    const codeParam = url.searchParams.get("code");
+    console.log(
+      "  - OAuth code param:",
+      codeParam ? "Dostępny (długość: " + codeParam.length + ")" : "Brak"
+    );
+
+    // Sprawdzamy, czy mamy błąd OAuth
+    const errorParam = url.searchParams.get("error");
+    if (errorParam) {
+      console.error("  - OAuth ERROR:", errorParam);
+      console.error(
+        "  - OAuth error_description:",
+        url.searchParams.get("error_description")
+      );
+    }
   }
 
   try {
@@ -78,8 +102,28 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
       console.error("  - Nazwa błędu:", error.name);
       console.error("  - Komunikat:", error.message);
       console.error("  - Stack:", error.stack);
+
+      // Sprawdź czy to jest błąd callbacka OAuth
+      if (
+        error.message.includes("callback") ||
+        error.message.includes("OAuth")
+      ) {
+        console.error("  - To jest błąd OAuth callback!");
+        console.error(
+          "  - Sprawdź konfigurację Google OAuth w konsoli Google Cloud."
+        );
+        console.error(
+          `  - Upewnij się, że callback URL jest ustawiony na: ${nextAuthUrl}/api/auth/callback/google`
+        );
+      }
     }
-    throw error;
+
+    // Zapewniamy, że użytkownik dostanie informację o błędzie
+    return Response.redirect(
+      `${nextAuthUrl}/login?error=Callback&details=${encodeURIComponent(
+        error instanceof Error ? error.message : String(error)
+      )}`
+    );
   }
 };
 

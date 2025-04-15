@@ -17,6 +17,7 @@ function LoginContent() {
     console.log("Parametry URL podczas logowania:", {
       callbackUrl,
       error,
+      details: searchParams?.get("details"),
       wszystkieParametry: Object.fromEntries(searchParams?.entries() || []),
     });
   }, [callbackUrl, error, searchParams]);
@@ -25,7 +26,14 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
     console.log("Aktualny URL:", window.location.href);
-    console.log("Docelowy callback:", "/dashboard");
+
+    // Pokaż szczegóły callbackUrl
+    console.log("Parametry logowania:", {
+      callbackFromUrl: callbackUrl,
+      windowOrigin: window.location.origin,
+      windowHref: window.location.href,
+      defaultCallback: "/dashboard",
+    });
 
     // Usuń wszystkie cookies związane z sesją
     try {
@@ -41,13 +49,18 @@ function LoginContent() {
     }
 
     try {
-      // Użyj najbardziej podstawowej konfiguracji logowania
-      console.log("Próbuję zalogować się przez Google - uproszczona wersja");
+      // Użyj najbardziej podstawowej konfiguracji logowania z jawnie określonym callbackUrl
+      console.log(
+        "Próbuję zalogować się przez Google z określonym callbackUrl"
+      );
 
-      // Bezpośrednie przekierowanie bez dodatkowych parametrów
-      await signIn("google");
+      // Ustaw konkretny callbackUrl
+      await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: true,
+      });
 
-      // Ten kod się nie wykona z powodu przekierowania
+      // Ten kod nie zostanie wykonany, gdyż nastąpi przekierowanie przeglądarki
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -56,6 +69,7 @@ function LoginContent() {
 
   const getErrorMessage = () => {
     console.log("Kod błędu:", error);
+    const errorDetails = searchParams?.get("details");
 
     if (error === "OAuthAccountNotLinked") {
       return "To konto e-mail jest już połączone z innym kontem. Użyj tego samego dostawcy, którego użyłeś wcześniej.";
@@ -73,7 +87,14 @@ function LoginContent() {
       return "Nie można utworzyć konta użytkownika. Możliwe, że konto już istnieje.";
     }
     if (error === "Callback") {
-      return "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania. Sprawdź, czy callback URL w konsoli Google jest ustawiony dokładnie na https://oddajhajs.org/api/auth/callback/google i czy domena jest autoryzowana.";
+      let message =
+        "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania. Sprawdź, czy callback URL w konsoli Google jest ustawiony dokładnie na https://oddajhajs.org/api/auth/callback/google i czy domena jest autoryzowana.";
+
+      if (errorDetails) {
+        message += `\n\nSzczegóły błędu: ${errorDetails}`;
+      }
+
+      return message;
     }
     if (error === "AccessDenied") {
       return "Dostęp zabroniony. Nie masz uprawnień do zalogowania się.";
@@ -86,7 +107,12 @@ function LoginContent() {
     }
 
     if (error) {
-      return `Wystąpił błąd podczas logowania (${error}). Spróbuj ponownie lub skontaktuj się z administratorem.`;
+      let message = `Wystąpił błąd podczas logowania (${error}).`;
+      if (errorDetails) {
+        message += ` Szczegóły: ${errorDetails}`;
+      }
+      message += " Spróbuj ponownie lub skontaktuj się z administratorem.";
+      return message;
     }
 
     return null;

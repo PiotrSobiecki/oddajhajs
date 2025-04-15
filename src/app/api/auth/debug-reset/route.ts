@@ -21,6 +21,7 @@ export async function GET(request: Request) {
 
   // Przygotuj URL do przekierowania na Google OAuth
   const baseUrl = new URL(request.url).origin;
+  const callbackUrl = `${baseUrl}/api/auth/callback/google`;
   const googleSignInUrl = `${baseUrl}/api/auth/signin/google?callbackUrl=/dashboard&reset=true`;
 
   // Zbierz informacje o zmiennych środowiskowych (bezpiecznie)
@@ -40,6 +41,17 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_NEXTAUTH_URL || "nie ustawione",
     VERCEL_URL: process.env.VERCEL_URL || "nie ustawione",
     VERCEL_ENV: process.env.VERCEL_ENV || "nie ustawione",
+  };
+
+  // Sprawdź, czy konfiguracja Google jest poprawna
+  const googleCheck = {
+    clientIdExists: !!process.env.GOOGLE_CLIENT_ID,
+    clientSecretExists: !!process.env.GOOGLE_CLIENT_SECRET,
+    clientIdLength: process.env.GOOGLE_CLIENT_ID?.length || 0,
+    clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
+    expectedRedirectUri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
+    detectedOrigin: baseUrl,
+    detectedCallback: callbackUrl,
   };
 
   // Odpowiedź z informacją i przekierowaniem
@@ -79,6 +91,18 @@ export async function GET(request: Request) {
           <p>Najważniejsze zmienne środowiskowe potrzebne do poprawnego działania NextAuth:</p>
           <div class="env-list">
             ${Object.entries(envInfo)
+              .map(
+                ([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h2>Konfiguracja Google OAuth</h2>
+          <p>Szczegóły konfiguracji Google OAuth:</p>
+          <div class="env-list">
+            ${Object.entries(googleCheck)
               .map(
                 ([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`
               )
