@@ -9,11 +9,13 @@ export async function GET() {
       prefix: process.env.DATABASE_URL
         ? process.env.DATABASE_URL.substring(0, 10) + "..."
         : "",
+      source: "process.env.DATABASE_URL",
     },
     NEXTAUTH_URL: {
       exists: !!process.env.NEXTAUTH_URL,
       status: process.env.NEXTAUTH_URL ? "Ustawione" : "Brak",
       value: process.env.NEXTAUTH_URL || "",
+      source: "process.env.NEXTAUTH_URL",
     },
     NEXTAUTH_SECRET: {
       exists: !!process.env.NEXTAUTH_SECRET,
@@ -21,6 +23,7 @@ export async function GET() {
       length: process.env.NEXTAUTH_SECRET
         ? process.env.NEXTAUTH_SECRET.length
         : 0,
+      source: "process.env.NEXTAUTH_SECRET",
     },
     GOOGLE_CLIENT_ID: {
       exists: !!process.env.GOOGLE_CLIENT_ID,
@@ -28,6 +31,7 @@ export async function GET() {
       length: process.env.GOOGLE_CLIENT_ID
         ? process.env.GOOGLE_CLIENT_ID.length
         : 0,
+      source: "process.env.GOOGLE_CLIENT_ID",
     },
     GOOGLE_CLIENT_SECRET: {
       exists: !!process.env.GOOGLE_CLIENT_SECRET,
@@ -35,6 +39,7 @@ export async function GET() {
       length: process.env.GOOGLE_CLIENT_SECRET
         ? process.env.GOOGLE_CLIENT_SECRET.length
         : 0,
+      source: "process.env.GOOGLE_CLIENT_SECRET",
     },
   };
 
@@ -46,8 +51,20 @@ export async function GET() {
       key.includes("DATABASE_")
   );
 
+  // Dodatkowe informacje o środowisku
+  const environmentInfo = {
+    NODE_ENV: process.env.NODE_ENV,
+    platform: process.platform,
+    nodeVersion: process.version,
+    timestamp: new Date().toISOString(),
+    railwaySpecificEnvs: Object.keys(process.env).filter((key) =>
+      key.includes("RAILWAY_")
+    ),
+  };
+
   return NextResponse.json({
     ...envStatus,
     allRelevantEnvs: allEnvs,
+    environment: environmentInfo,
   });
 }
