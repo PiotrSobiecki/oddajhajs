@@ -27,20 +27,12 @@ function LoginContent() {
     console.log("Rozpoczynam logowanie przez Google...");
 
     try {
-      // Zamiast używać signIn, które wywołuje fetch, użyjmy w pełni kontrolowanego podejścia
-      console.log("Przekierowuję bezpośrednio na endpoint Google OAuth");
+      // Korzystamy z alternatywnego endpointu, który zawsze używa NEXTAUTH_URL
+      console.log("Przekierowuję na ręczny endpoint Google OAuth");
 
-      // Używamy pełnego URL, aby uniknąć problemów z względnymi ścieżkami
-      const host = window.location.host; // np. oddajhajs.org
-      const protocol = window.location.protocol; // https:
-      const fullUrl = `${protocol}//${host}/api/auth/signin/google?callbackUrl=${encodeURIComponent(
-        "/dashboard"
-      )}`;
-
-      console.log("Przekierowuję na:", fullUrl);
-
-      // Przekierowanie przeglądarki
-      window.location.href = fullUrl;
+      // Używamy ścieżki względnej, aby baseUrl był dodany przez przeglądarkę
+      window.location.href =
+        "/api/auth/manual-google-auth?callbackUrl=/dashboard";
 
       // Ten kod nie zostanie wykonany z powodu przekierowania
     } catch (error) {
@@ -182,9 +174,9 @@ Spróbuj użyć przycisku "Alternatywne logowanie (ręczne)" poniżej lub "Diagn
 
           <button
             onClick={() => {
-              const host = window.location.host;
-              const protocol = window.location.protocol;
-              window.location.href = `${protocol}//${host}/api/auth/manual-google-auth?callbackUrl=/dashboard`;
+              // Użyj alternatywnej metody logowania, która używa tylko skonfigurowanego NEXTAUTH_URL
+              window.location.href =
+                "/api/auth/manual-google-auth?callbackUrl=/dashboard";
             }}
             className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
           >

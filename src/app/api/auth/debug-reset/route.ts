@@ -20,9 +20,19 @@ export async function GET(request: Request) {
   }
 
   // Przygotuj URL do przekierowania na Google OAuth
-  const baseUrl = new URL(request.url).origin;
+  const detectedUrl = new URL(request.url).origin;
+  const configuredUrl = process.env.NEXTAUTH_URL || "";
+
+  // ZAWSZE używaj NEXTAUTH_URL zamiast wykrytego URL
+  const baseUrl = configuredUrl || detectedUrl;
+
   const callbackUrl = `${baseUrl}/api/auth/callback/google`;
   const googleSignInUrl = `${baseUrl}/api/auth/signin/google?callbackUrl=/dashboard&reset=true`;
+
+  // Log dla diagnostyki
+  console.log("Debug Reset - detectedUrl:", detectedUrl);
+  console.log("Debug Reset - configuredUrl:", configuredUrl);
+  console.log("Debug Reset - użyty baseUrl:", baseUrl);
 
   // Zbierz informacje o zmiennych środowiskowych (bezpiecznie)
   const envInfo = {

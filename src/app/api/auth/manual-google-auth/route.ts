@@ -38,12 +38,16 @@ export async function GET(request: Request) {
 
     // Preferuj adres z nagłówków
     let baseUrl = "";
-    if (forwardedProto && forwardedHost) {
-      baseUrl = `${forwardedProto}://${forwardedHost}`;
-    } else if (nextAuthUrl) {
+    if (nextAuthUrl) {
+      // ZAWSZE używaj NEXTAUTH_URL jako adresu bazowego, ignorując wykryty URL
       baseUrl = nextAuthUrl;
+      console.log("- Używam NEXTAUTH_URL:", baseUrl);
+    } else if (forwardedProto && forwardedHost) {
+      baseUrl = `${forwardedProto}://${forwardedHost}`;
+      console.log("- Używam adresu z nagłówków:", baseUrl);
     } else {
       baseUrl = url.origin;
+      console.log("- Używam adresu z żądania:", baseUrl);
     }
 
     console.log("- Bazowy URL (wykryty):", url.origin);
