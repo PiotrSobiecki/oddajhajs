@@ -25,15 +25,6 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     console.log("Rozpoczynam logowanie przez Google...");
-    console.log("Aktualny URL:", window.location.href);
-
-    // Pokaż szczegóły callbackUrl
-    console.log("Parametry logowania:", {
-      callbackFromUrl: callbackUrl,
-      windowOrigin: window.location.origin,
-      windowHref: window.location.href,
-      defaultCallback: "/dashboard",
-    });
 
     // Usuń wszystkie cookies związane z sesją
     try {
@@ -49,21 +40,11 @@ function LoginContent() {
     }
 
     try {
-      // Wypróbuj alternatywną metodę przekierowania
-      console.log("Alternatywne podejście do logowania przez Google");
+      // Użyj bezpośredniego przekierowania na endpoint (bez signIn)
+      console.log("Przekierowuję bezpośrednio na endpoint logowania Google");
 
-      // Metoda 1: standardowe signIn z pełnym URL
-      signIn("google", {
-        callbackUrl: `${window.location.origin}/dashboard`,
-        redirect: true,
-      });
-
-      /* // Metoda 2: bezpośrednie przekierowanie na endpoint logowania
-      window.location.href = `${window.location.origin}/api/auth/signin/google?callbackUrl=${encodeURIComponent(
-        `${window.location.origin}/dashboard`
-      )}`; */
-
-      // Ten kod nie zostanie wykonany, gdyż nastąpi przekierowanie przeglądarki
+      // Bezpośrednie przekierowanie na endpoint OAuth
+      window.location.href = "/api/auth/signin/google?callbackUrl=/dashboard";
     } catch (error) {
       console.error("Nieoczekiwany błąd podczas logowania:", error);
       setIsLoading(false);
@@ -91,7 +72,11 @@ function LoginContent() {
     }
     if (error === "Callback") {
       let message =
-        "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania. Sprawdź, czy callback URL w konsoli Google jest ustawiony dokładnie na https://oddajhajs.org/api/auth/callback/google i czy domena jest autoryzowana.";
+        "Błąd podczas obsługi odpowiedzi z usługi uwierzytelniania.\n\n" +
+        "1. Sprawdź czy callback URL w konsoli Google jest ustawiony dokładnie na https://oddajhajs.org/api/auth/callback/google\n" +
+        "2. Upewnij się, że domena oddajhajs.org jest autoryzowana w projekcie Google Cloud\n" +
+        "3. Prawdopodobnie problem występuje z powodu przekierowań Railway, które zwracają niepoprawne adresy URL\n\n" +
+        "Spróbuj ponownie później lub skontaktuj się z administratorem.";
 
       if (errorDetails) {
         message += `\n\nSzczegóły błędu: ${errorDetails}`;

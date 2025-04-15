@@ -40,9 +40,19 @@ function parseUrl(urlString: string) {
 // Dodajmy funkcję pomocniczą do monitorowania zapytań
 const wrappedHandler = async (req: Request, ...args: any[]) => {
   // Naprawiamy problem z baseUrl
-  const url = new URL(req.url);
+  const origUrl = new URL(req.url);
+
+  // Sprawdzam czy to nie jest request związany z Google OAuth callback
+  const isCallback = origUrl.pathname.includes("/callback/google");
+  const isSignIn = origUrl.pathname.includes("/signin/google");
+
+  // Zwiększamy poziom logowania dla tych ścieżek
+  if (isCallback || isSignIn) {
+    console.log(`Auth Route - Ważne zapytanie OAuth: ${origUrl.pathname}`);
+  }
+
   console.log(
-    `Auth Route - ${req.method} zapytanie: ${url.pathname}${url.search}`
+    `Auth Route - ${req.method} zapytanie: ${origUrl.pathname}${origUrl.search}`
   );
 
   // Pobierz nagłówki X-Forwarded-* stosowane przez Railway
@@ -53,6 +63,41 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
   if (forwardedProto && forwardedHost) {
     detectedUrl = `${forwardedProto}://${forwardedHost}`;
     console.log(`Auth Route - Wykryto przekierowany URL: ${detectedUrl}`);
+
+    // Nadpisz URL w żądaniu, aby NextAuth otrzymał poprawny adres
+    if (isCallback || isSignIn) {
+      // Tworzymy nowy obiekt URL ze skorygowanym hostem
+      const fixedUrl = new URL(origUrl.toString());
+      fixedUrl.protocol = forwardedProto;
+      fixedUrl.host = forwardedHost;
+
+      // Modyfikujemy żądanie, aby użyć poprawnego URL
+      console.log(
+        `Auth Route - Naprawiam URL żądania z ${origUrl} na ${fixedUrl}`
+      );
+
+      // Tworzenie nowego obiektu Request z poprawnym URL
+      const modifiedReq = new Request(fixedUrl, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+        cache: req.cache,
+        credentials: req.credentials,
+        integrity: req.integrity,
+        keepalive: req.keepalive,
+        mode: req.mode,
+        redirect: req.redirect,
+        referrer: req.referrer,
+        referrerPolicy: req.referrerPolicy,
+        signal: req.signal,
+      });
+
+      // Zastępujemy oryginalne żądanie
+      req = modifiedReq;
+      console.log(
+        `Auth Route - Żądanie zostało zmodyfikowane. Nowy URL: ${req.url}`
+      );
+    }
 
     // Nadpisz NEXTAUTH_URL w czasie wykonania, jeśli nie jest ustawiony
     if (!process.env.NEXTAUTH_URL) {
@@ -69,33 +114,33 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
   console.log("Auth Route - Wykryty URL:", detectedUrl);
 
   // Jeśli URL zawiera callback, dodaj szczegółowe debugowanie
-  if (url.pathname.includes("/callback")) {
+  if (origUrl.pathname.includes("/callback")) {
     console.log("Auth Route - Debugowanie callbacka:");
     console.log("  - Pełny URL:", req.url);
-    console.log("  - Parametry:", Object.fromEntries(url.searchParams));
+    console.log("  - Parametry:", Object.fromEntries(origUrl.searchParams));
 
     // Próba odczytania ciasteczek z zapytania
     const cookieHeader = req.headers.get("cookie");
     console.log("  - Cookie Header:", cookieHeader);
 
     // Sprawdzamy, czy mamy token stanu OAuth
-    const stateParam = url.searchParams.get("state");
+    const stateParam = origUrl.searchParams.get("state");
     console.log("  - OAuth state param:", stateParam);
 
     // Sprawdzamy, czy mamy kod autoryzacji OAuth
-    const codeParam = url.searchParams.get("code");
+    const codeParam = origUrl.searchParams.get("code");
     console.log(
       "  - OAuth code param:",
       codeParam ? "Dostępny (długość: " + codeParam.length + ")" : "Brak"
     );
 
     // Sprawdzamy, czy mamy błąd OAuth
-    const errorParam = url.searchParams.get("error");
+    const errorParam = origUrl.searchParams.get("error");
     if (errorParam) {
       console.error("  - OAuth ERROR:", errorParam);
       console.error(
         "  - OAuth error_description:",
-        url.searchParams.get("error_description")
+        origUrl.searchParams.get("error_description")
       );
     }
   }
@@ -129,14 +174,18 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
       if (
         error.message.includes("callback") ||
         error.message.includes("OAuth") ||
-        error.message.includes("google")
+        error.message.includes("google") ||
+        error.message.includes("PKCE")
       ) {
         console.error("  - To jest błąd OAuth!");
         console.error(
           "  - Sprawdź konfigurację Google OAuth w konsoli Google Cloud."
         );
         console.error(
-          `  - Upewnij się, że callback URL jest ustawiony na: ${nextAuthUrl}/api/auth/callback/google`
+          `  - Upewnij się, że callback URL jest ustawiony na: ${process.env.NEXTAUTH_URL}/api/auth/callback/google`
+        );
+        console.error(
+          `  - Aktualny URL wykryty z nagłówków: ${detectedUrl}/api/auth/callback/google`
         );
 
         // Więcej szczegółów i diagnostyka
@@ -153,6 +202,20 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
             .GOOGLE_CLIENT_SECRET}`
         );
         console.error(`    - NODE_ENV: ${process.env.NODE_ENV}`);
+
+        // Sprawdź stan sesji w cookies
+        const cookieHeader = req.headers.get("cookie");
+        if (cookieHeader) {
+          console.error("  - Cookies w żądaniu:");
+          cookieHeader.split(";").forEach((cookie) => {
+            const [name, value] = cookie.trim().split("=");
+            if (name.includes("next-auth")) {
+              console.error(`    - ${name}: ${value.substring(0, 10)}...`);
+            }
+          });
+        } else {
+          console.error("  - Brak cookies w żądaniu!");
+        }
       }
     }
 
@@ -165,8 +228,11 @@ const wrappedHandler = async (req: Request, ...args: any[]) => {
     // Przekieruj do strony logowania z błędem
     console.log("Auth Route - Przekierowuję na stronę logowania z błędem.");
 
+    // Użyj detectedUrl zamiast nextAuthUrl, jeśli jest dostępny
+    const redirectBase = detectedUrl || nextAuthUrl || "https://oddajhajs.org";
+
     return Response.redirect(
-      `${nextAuthUrl}/login?error=Callback&details=${encodeURIComponent(
+      `${redirectBase}/login?error=Callback&details=${encodeURIComponent(
         errorDetails
       )}`
     );

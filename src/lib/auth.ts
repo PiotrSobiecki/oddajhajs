@@ -193,11 +193,14 @@ if (googleCredentialsAvailable) {
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      // Upraszczamy konfigurację do minimum
+      // Upraszczamy i korygujemy konfigurację
       authorization: {
         params: {
-          prompt: "select_account",
+          prompt: "consent", // Wymuś zgodę użytkownika
         },
+      },
+      httpOptions: {
+        timeout: 60000, // Zwiększam timeout do 60s
       },
     })
   );
@@ -323,31 +326,48 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    // Dodajemy obsługę redirect, żeby lepiej kontrolować przekierowania
+    // Własna funkcja obsługi przekierowań (kluczowe dla rozwiązania problemu)
     async redirect({ url, baseUrl }) {
-      console.log("Redirect callback wywołany z:", { url, baseUrl });
+      console.log("REDIRECT CALLBACK:", { url, baseUrl });
 
-      // Sprawdź, czy URL zaczyna się od baseUrl
-      if (url.startsWith(baseUrl)) {
-        console.log("Przekierowanie do URL w domenie aplikacji:", url);
-        return url;
-      }
-      // Jeśli jest to względny URL (rozpoczyna się od /)
-      else if (url.startsWith("/")) {
-        console.log("Przekierowanie do względnego URL:", `${baseUrl}${url}`);
-        return `${baseUrl}${url}`;
+      // Dodajemy specjalną obsługę adresów URL z przekierowaniami
+      // Sprawdzamy, czy URL jest bezwzględny czy względny
+      if (url.startsWith("/")) {
+        // URL względny, dołączamy baseUrl
+        const absoluteUrl = `${baseUrl}${url}`;
+        console.log("Względny URL przekształcony na bezwzględny:", absoluteUrl);
+        return absoluteUrl;
       }
 
-      // Sprawdź, czy to callback URL z Google
-      if (url.includes("/api/auth/callback/")) {
-        console.log("Otrzymano callback z providera OAuth:", url);
-        // Zachowaj ten URL, to prawidłowy callback z Google
-        return url;
+      // Sprawdź, czy URL zawiera protokół - jeśli tak, to jest już bezwzględny
+      if (url.startsWith("http")) {
+        // Sprawdź, czy URL jest na tej samej domenie co aplikacja
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(baseUrl);
+
+        // Jeśli domeny się zgadzają, przekieruj do danego URL
+        if (urlObj.hostname === baseUrlObj.hostname) {
+          console.log("Przekierowanie do URL na tej samej domenie:", url);
+          return url;
+        }
+
+        // Jeśli to adres callbacka, pozwól na przekierowanie
+        if (url.includes("/api/auth/callback/")) {
+          console.log("Przekierowanie do callbacka OAuth:", url);
+          return url;
+        }
+
+        // W przypadku zewnętrznych adresów URL, przekieruj do strony głównej
+        console.log(
+          "Próba przekierowania do zewnętrznego URL, używam baseUrl:",
+          baseUrl
+        );
+        return baseUrl;
       }
 
-      // W innych przypadkach przekieruj do dashboard
+      // W przypadku innych adresów URL, użyj domyślnego zachowania
       console.log(
-        "Przekierowanie do domyślnego URL (dashboard):",
+        "Domyślne przekierowanie do dashboard:",
         `${baseUrl}/dashboard`
       );
       return `${baseUrl}/dashboard`;
