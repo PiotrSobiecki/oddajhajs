@@ -1,19 +1,18 @@
 [build]
-builder = "nixpacks"
-buildCommand = "npm run build"
+builder = "ubuntu-nodejs"
+buildCommand = "yarn && yarn prisma generate && NEXT_PUBLIC_RAILWAY_ENVIRONMENT=production NODE_OPTIONS='--max-old-space-size=4096' yarn build"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "yarn start"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 
-[nixpacks]
-nodejs-version = "18"
-
 [service]
-memory_limit = "2048"
-memory_request = "1024"
+memory_limit = "4096"
+memory_request = "2048"
+cpu_limit = "2"
+cpu_request = "1"
 
 [env]
 NODE_ENV = "production"
-NODE_OPTIONS = "--max-old-space-size=2048" 
+NODE_OPTIONS = "--max-old-space-size=4096" 

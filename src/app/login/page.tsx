@@ -6,9 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
 
-// Statyczne generowanie strony - rozwiązanie problemu z eksportem
-export const dynamic = "force-static";
-export const dynamicParams = false;
+// Konfiguracja eksportu strony
+export const dynamic = "force-dynamic"; // Zmuszamy do trybu dynamicznego
+export const runtime = "nodejs"; // Używamy runtime nodejs
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);

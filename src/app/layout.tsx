@@ -1,10 +1,21 @@
 import "./globals.css";
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SessionProvider } from "@/components/SessionProvider";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
+
+// Konfiguracja metabase dla wygenerowania poprawnych URL dla OG
+export const metadataBase = new URL(
+  process.env.NEXTAUTH_URL || "https://oddajhajs.org"
+);
+
+// Konfiguracja viewport zgodnie z zaleceniami Next.js
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "OddajHajs.org - Koniec z problemami z kasą!",
@@ -13,7 +24,6 @@ export const metadata: Metadata = {
   keywords:
     "rozliczenia grupowe, podział wydatków, oddaj hajs, podział kosztów, impreza, wyjazd, znajomi, pieniądze",
   authors: [{ name: "OddajHajs.org Team" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   openGraph: {
     type: "website",

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:https": "node server.js",
     "prebuild": "prisma generate",
-    "build": "NODE_OPTIONS='--max-old-space-size=2048' next build",
+    "build": "NEXT_PUBLIC_RAILWAY_ENVIRONMENT=production NODE_OPTIONS='--max-old-space-size=4096' next build",
     "docker-build": "next build",
     "postbuild": "prisma migrate deploy",
     "start": "next start",
