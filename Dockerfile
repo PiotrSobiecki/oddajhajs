@@ -13,9 +13,21 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ustawienie zmiennej środowiskowej dla Prisma
+ENV DATABASE_URL="file:./dev.db"
+# Wartość domyślna dla budowania, zostanie nadpisana w runtime
+ENV NEXTAUTH_URL="http://localhost:3000"
+ENV NEXTAUTH_SECRET="IeKs/7zAArLqn1dEVefNq8nMs+Z46dgQG/ZtOisFp64="
+
+# Najpierw generowanie prisma
+RUN npx prisma generate
+
+# Usuwanie skryptu postbuild, który może powodować problemy
+RUN npm pkg delete scripts.postbuild
+
 # Build with TypeScript checking disabled
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV NEXT_TYPESCRIPT_COMPILE_ONLY 1
+ENV TYPESCRIPT_SKIP_TYPECHECKING 1
 ENV NODE_ENV production
 RUN npm run build
 
@@ -25,11 +37,22 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV DATABASE_URL="file:./dev.db"
+# NEXTAUTH_URL będzie pobierany z zmiennych środowiskowych kontenera
+# Domyślnie używamy localhost, ale w produkcji należy ustawić odpowiedni URL
+ENV NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+ENV NEXTAUTH_SECRET="IeKs/7zAArLqn1dEVefNq8nMs+Z46dgQG/ZtOisFp64="
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+
+# Kopiujemy wygenerowane pliki Prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/dev.db ./dev.db
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
