@@ -4,7 +4,8 @@ const nextConfig = {
   images: {
     domains: ["lh3.googleusercontent.com"], // Zezwolenie na obrazy z Google (zdjęcia profilowe)
   },
-  output: "standalone",
+  // Wyłączamy tryb standalone, który powoduje problemy
+  // output: "standalone",
   typescript: {
     // Ignorowanie błędów TS podczas budowania
     ignoreBuildErrors: true,

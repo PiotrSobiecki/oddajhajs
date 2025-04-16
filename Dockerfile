@@ -26,8 +26,18 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Pomijamy sprawdzanie typów podczas budowania
 ENV NEXT_TYPESCRIPT_COMPILE_ONLY=1
 
-# Modyfikujemy skrypt budowania, aby ignorować błędy podczas eksportu
-RUN npm run build || (echo "Budowanie zakończone z ostrzeżeniami, ale kontynuujemy" && exit 0)
+# Czyścimy katalog .next, aby upewnić się, że budowanie zacznie się od zera
+RUN rm -rf /app/.next
+
+# Buduj aplikację
+RUN npm run build
+
+# Sprawdź katalogi po budowaniu
+RUN echo "Sprawdzanie katalogu .next po budowaniu:" && \
+    ls -la /app/.next/ || echo "Katalog .next nie istnieje"
+
+# Upewnij się, że katalog prisma jest dostępny
+RUN ls -la /app/prisma
 
 # Tworzymy lub modyfikujemy potrzebne pliki do uruchomienia w trybie produkcyjnym
 RUN mkdir -p /app/.next && \
@@ -35,17 +45,11 @@ RUN mkdir -p /app/.next && \
         echo '{"version":3,"routes":{},"dynamicRoutes":{},"preview":{"previewModeId":"","previewModeSigningKey":"","previewModeEncryptionKey":""}}' > /app/.next/prerender-manifest.json; \
     fi && \
     if [ ! -f /app/.next/server/pages-manifest.json ]; then \
+        mkdir -p /app/.next/server && \
         echo '{}' > /app/.next/server/pages-manifest.json; \
     fi
 
-# Upewnij się, że katalog prisma jest dostępny
-RUN ls -la /app/prisma
-
-# Sprawdź, czy istnieje wersja standalone utworzona przez Next.js
-RUN ls -la /app/.next/ || echo "Katalog .next nie istnieje"
-RUN ls -la /app/.next/standalone/ || echo "Katalog .next/standalone nie istnieje"
-
-# Tworzę prosty skrypt startowy bez escape sequences które powodują problemy
+# Tworzę prosty skrypt startowy
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "============================================"' >> /app/entrypoint.sh && \
     echo 'echo "Sprawdzanie zmiennych środowiskowych w kontenerze:"' >> /app/entrypoint.sh && \
@@ -53,18 +57,8 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "DATABASE_URL dostępny: $(if [ -n "$DATABASE_URL" ]; then echo TAK; else echo NIE; fi)"' >> /app/entrypoint.sh && \
     echo 'echo "GOOGLE_CLIENT_ID dostępny: $(if [ -n "$GOOGLE_CLIENT_ID" ]; then echo TAK; else echo NIE; fi)"' >> /app/entrypoint.sh && \
     echo 'echo "============================================"' >> /app/entrypoint.sh && \
-    echo 'echo "Sprawdzanie katalogu .next:"' >> /app/entrypoint.sh && \
-    echo 'ls -la /app/.next/' >> /app/entrypoint.sh && \
-    echo 'echo "Sprawdzanie katalogu .next/standalone:"' >> /app/entrypoint.sh && \
-    echo 'ls -la /app/.next/standalone/ || echo "Katalog .next/standalone nie istnieje"' >> /app/entrypoint.sh && \
     echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
-    echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
-    echo 'if [ -f /app/.next/standalone/server.js ]; then' >> /app/entrypoint.sh && \
-    echo '  node /app/.next/standalone/server.js' >> /app/entrypoint.sh && \
-    echo 'else' >> /app/entrypoint.sh && \
-    echo '  echo "Brak pliku standalone/server.js, próbuję uruchomić w standardowy sposób"' >> /app/entrypoint.sh && \
-    echo '  npm start' >> /app/entrypoint.sh && \
-    echo 'fi' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy && npm start' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 # Uruchom migracje i aplikację
