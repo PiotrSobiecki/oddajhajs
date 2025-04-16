@@ -102,13 +102,6 @@ export default function LoginButton() {
           >
             Moje ekipy 🤝
           </Link>
-          <Link
-            href="/"
-            className="block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-blue-400"
-            onClick={() => setIsDropdownOpen(false)}
-          >
-            Nowe rozliczenie 💰
-          </Link>
           <div className="border-t border-gray-700 my-1"></div>
           <button
             onClick={() => {
