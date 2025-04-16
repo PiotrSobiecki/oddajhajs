@@ -416,7 +416,7 @@ export default function ExpenseForm({
                     setSplitBetween([...splitBetween, person.id]);
                   } else {
                     setSplitBetween(
-                      splitBetween.filter((id) => id !== person.id)
+                      splitBetween.filter((id: string) => id !== person.id)
                     );
                   }
                 }}

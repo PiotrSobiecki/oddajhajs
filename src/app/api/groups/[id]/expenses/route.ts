@@ -276,10 +276,10 @@ export async function POST(
     // Przekształć ID użytkowników na ID członków grupy dla splitBetween
     const splitBetweenMemberIds = splitBetween
       .map((userId: string) => getMemberIdByUserId(userId))
-      .filter((id): id is string => id !== null);
+      .filter((id: unknown): id is string => id !== null);
 
     // Utwórz wydatek w bazie danych
-    let newExpense;
+    let newExpense: any;
 
     if (isComplexPayment) {
       // Dla złożonych płatności
@@ -291,7 +291,7 @@ export async function POST(
           isComplexPayment: true,
           date: new Date(),
           splitBetween: {
-            create: splitBetweenMemberIds.map((memberId) => ({
+            create: splitBetweenMemberIds.map((memberId: string) => ({
               member: {
                 connect: { id: memberId },
               },
@@ -339,7 +339,7 @@ export async function POST(
           isComplexPayment: false,
           date: new Date(),
           splitBetween: {
-            create: splitBetweenMemberIds.map((memberId) => ({
+            create: splitBetweenMemberIds.map((memberId: string) => ({
               member: {
                 connect: { id: memberId },
               },
