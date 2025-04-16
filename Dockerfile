@@ -29,8 +29,14 @@ ENV NEXT_TYPESCRIPT_COMPILE_ONLY=1
 # Modyfikujemy skrypt budowania, aby ignorować błędy podczas eksportu
 RUN npm run build || (echo "Budowanie zakończone z ostrzeżeniami, ale kontynuujemy" && exit 0)
 
-# Tworzymy pusty prerender-manifest.json
-RUN echo '{"version":3,"routes":{},"dynamicRoutes":{},"preview":{"previewModeId":"","previewModeSigningKey":"","previewModeEncryptionKey":""}}' > /app/.next/prerender-manifest.json
+# Tworzymy lub modyfikujemy potrzebne pliki do uruchomienia w trybie produkcyjnym
+RUN mkdir -p /app/.next && \
+    if [ ! -f /app/.next/prerender-manifest.json ]; then \
+        echo '{"version":3,"routes":{},"dynamicRoutes":{},"preview":{"previewModeId":"","previewModeSigningKey":"","previewModeEncryptionKey":""}}' > /app/.next/prerender-manifest.json; \
+    fi && \
+    if [ ! -f /app/.next/server/pages-manifest.json ]; then \
+        echo '{}' > /app/.next/server/pages-manifest.json; \
+    fi
 
 # Upewnij się, że katalog prisma jest dostępny
 RUN ls -la /app/prisma
@@ -43,8 +49,10 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "DATABASE_URL dostępny: $(if [ -n "$DATABASE_URL" ]; then echo TAK; else echo NIE; fi)"' >> /app/entrypoint.sh && \
     echo 'echo "GOOGLE_CLIENT_ID dostępny: $(if [ -n "$GOOGLE_CLIENT_ID" ]; then echo TAK; else echo NIE; fi)"' >> /app/entrypoint.sh && \
     echo 'echo "============================================"' >> /app/entrypoint.sh && \
+    echo 'echo "Sprawdzanie katalogu .next:"' >> /app/entrypoint.sh && \
+    echo 'ls -la /app/.next/' >> /app/entrypoint.sh && \
     echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
-    echo 'npx prisma migrate deploy && npm start' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy && node server.js' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 # Uruchom migracje i aplikację

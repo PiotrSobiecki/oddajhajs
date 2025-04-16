@@ -9,7 +9,7 @@
     "build": "next build --no-lint",
     "docker-build": "next build",
     "postbuild": "prisma migrate deploy",
-    "start": "next start --experimental-minify-standalone=false",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
