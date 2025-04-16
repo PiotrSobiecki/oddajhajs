@@ -8,6 +8,7 @@ import {
   FaHandshake,
   FaBeer,
   FaPizzaSlice,
+  FaGoogle,
 } from "react-icons/fa";
 
 interface IntroPopupProps {
@@ -17,7 +18,7 @@ interface IntroPopupProps {
 export default function IntroPopup({ onClose }: IntroPopupProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-xl w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -25,10 +26,10 @@ export default function IntroPopup({ onClose }: IntroPopupProps) {
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
               aria-label="Zamknij"
             >
-              <FaTimes className="w-5 h-5" />
+              <FaTimes className="w-6 h-6" />
             </button>
           </div>
 
@@ -77,12 +78,18 @@ export default function IntroPopup({ onClose }: IntroPopupProps) {
                     interpretacji
                   </span>
                 </li>
+                <li className="flex items-start">
+                  <FaGoogle className="mt-1 mr-2 text-blue-500" />
+                  <span>
+                    Możesz korzystać bez logowania lub zalogować się przez
+                    Google, aby tworzyć grupy i zapisywać rozliczenia w chmurze
+                  </span>
+                </li>
               </ul>
             </div>
 
             <p className="text-gray-600 dark:text-gray-300">
-              Zero rejestracji, zero logowania, zero komplikacji - za to 100%
-              skuteczności w rozliczeniu kasy ze znajomymi, którzy "zapomną
+              Szybko i skutecznie rozliczaj się ze znajomymi, którzy "zapomną
               oddać" albo "nie pamiętają że byli nam coś winni". Teraz macie
               wszystko czarno na białym! 😎
             </p>
@@ -91,7 +98,7 @@ export default function IntroPopup({ onClose }: IntroPopupProps) {
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Dawaj, odzyskajmy ten hajs!
             </button>
