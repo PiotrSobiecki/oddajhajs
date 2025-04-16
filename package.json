@@ -7,8 +7,6 @@
     "dev:https": "node server.js",
     "prebuild": "prisma generate",
     "build": "next build",
-    "docker-build": "SKIP_DB_MIGRATION=true next build --no-lint",
-    "postbuild": "node -e \"process.env.SKIP_DB_MIGRATION !== 'true' && require('child_process').execSync('prisma migrate deploy')\"",
     "start": "next start",
     "lint": "next lint"
   },

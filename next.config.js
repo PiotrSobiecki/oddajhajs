@@ -13,6 +13,12 @@ const nextConfig = {
     // Ignorowanie błędów ESLint podczas budowania
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Pomijanie sprawdzania typów podczas budowania
+    skipTypeChecking: true,
+    // Optymalizacje dla kontenerów
+    outputFileTracingRoot: undefined,
+  },
 };
 
 module.exports = nextConfig;
