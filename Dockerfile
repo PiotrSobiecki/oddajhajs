@@ -2,25 +2,26 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# Ustawiam zmienne środowiskowe, aby wyłączyć telemetrię i sprawdzanie typów
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV TYPESCRIPT_CHECK false
-
 # Etap instalacji zależności
 FROM base AS dependencies
 COPY package.json package-lock.json ./
+COPY prisma ./prisma/
 RUN npm ci
+RUN npx prisma generate
 
 # Etap budowania
 FROM base AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=dependencies /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
 
-# Generowanie klienta Prisma i budowanie aplikacji
-RUN npx prisma generate
+# Zmienne środowiskowe dla etapu budowania
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
+ENV SKIP_DB_MIGRATION true
 
-# Użycie skryptu docker-build zamiast zwykłego build
+# Budowanie aplikacji
 RUN npm run docker-build
 
 # Etap produkcyjny
@@ -40,7 +41,6 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.env ./.env
 
 # Ustawienie uprawnień dla nextjs użytkownika
 RUN chown -R nextjs:nodejs /app

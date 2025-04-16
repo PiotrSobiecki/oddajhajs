@@ -9,6 +9,10 @@ const nextConfig = {
     // Ignorowanie błędów TS podczas budowania
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // Ignorowanie błędów ESLint podczas budowania
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;

@@ -6,8 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
 
-// Wyłączamy eksport tej strony
-export const dynamic = "error";
+// Konfiguracja dynamicznego renderowania
+export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
