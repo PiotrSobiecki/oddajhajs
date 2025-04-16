@@ -12,6 +12,7 @@ import Calculator from "@/components/Calculator";
 import * as XLSX from "xlsx";
 import { FaCheckCircle, FaExclamationTriangle, FaPlus } from "react-icons/fa";
 import IntroPopup from "@/components/IntroPopup";
+import Link from "next/link";
 
 export default function Home() {
   const [step, setStep] = useState<"people" | "expenses" | "results">("people");
@@ -1040,8 +1041,14 @@ export default function Home() {
                   oddać 💸
                 </li>
                 <li>
-                  Zaloguj się, aby zapisywać rozliczenia w chmurze i tworzyć
-                  grupy ze znajomymi 🔐
+                  <Link
+                    href="/login"
+                    className="text-blue-400 hover:text-blue-300 hover:underline"
+                  >
+                    Zaloguj się
+                  </Link>
+                  , aby zapisywać rozliczenia w chmurze i tworzyć grupy ze
+                  znajomymi 🔐
                 </li>
               </ol>
             </div>
