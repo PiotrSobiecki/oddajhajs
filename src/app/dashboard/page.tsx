@@ -14,6 +14,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import Footer from "@/components/Footer";
+import Instructions from "@/components/Instructions";
 
 // Definiuję własny typ Group zamiast importować z Prisma, aby uniknąć błędów
 type Group = {
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null); // ID grupy do usunięcia
+  const [showInstructions, setShowInstructions] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     visible: boolean;
@@ -157,6 +159,14 @@ export default function DashboardPage() {
 
   const cancelDelete = () => {
     setConfirmDelete(null);
+  };
+
+  const handleShowInstructions = () => {
+    setShowInstructions(true);
+  };
+
+  const handleCloseInstructions = () => {
+    setShowInstructions(false);
   };
 
   if (status === "loading" || isLoading) {
@@ -368,6 +378,8 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+
+      {showInstructions && <Instructions onClose={handleCloseInstructions} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import LoginButton from "./LoginButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Calculator from "./Calculator";
+import Instructions from "./Instructions";
 
 // Interfejs dla linków nawigacji
 interface NavLink {
@@ -19,6 +20,7 @@ interface NavLink {
 export default function AppNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -71,10 +73,22 @@ export default function AppNavbar() {
     setShowCalculator(false);
   };
 
+  // Obsługa instrukcji
+  const handleShowInstructions = () => {
+    setShowInstructions(true);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  const handleCloseInstructions = () => {
+    setShowInstructions(false);
+  };
+
   // Podstawowe linki, zawsze dostępne
   const navLinks: NavLink[] = [
     { label: "Nowe rozliczenie", href: "/" },
-    { label: "Instrukcja", href: "/#instructions" },
+    { label: "Instrukcja", href: "#", action: handleShowInstructions },
     { label: "Kalkulator", href: "#", action: handleShowCalculator },
   ];
 
@@ -318,6 +332,7 @@ export default function AppNavbar() {
 
       {/* Kalkulator bez przycisku 'Zastosuj' */}
       {showCalculator && <Calculator onClose={handleCloseCalculator} />}
+      {showInstructions && <Instructions onClose={handleCloseInstructions} />}
     </nav>
   );
 }
