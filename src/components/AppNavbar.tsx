@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import LoginButton from "./LoginButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import Calculator from "./Calculator";
 
 export default function AppNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
 
   // Dodajemy funkcję określającą aktualny krok na podstawie pathname
@@ -49,11 +52,23 @@ export default function AppNavbar() {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Obsługa kalkulatora
+  const handleShowCalculator = () => {
+    setShowCalculator(true);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  const handleCloseCalculator = () => {
+    setShowCalculator(false);
+  };
+
   // Podstawowe linki, zawsze dostępne
   const navLinks = [
     { label: "Nowe rozliczenie", href: "/" },
     { label: "Instrukcja", href: "/#instructions" },
-    { label: "Kalkulator", href: "/#calculator" },
+    { label: "Kalkulator", href: "#", action: handleShowCalculator },
   ];
 
   // Link do ekip tylko dla zalogowanych
@@ -79,21 +94,31 @@ export default function AppNavbar() {
               </span>
             </Link>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
-              {displayLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
-                    pathname === link.href ||
-                    (link.href === "/dashboard" &&
-                      pathname.startsWith("/groups"))
-                      ? "text-blue-400 border-b-2 border-blue-400"
-                      : "text-gray-100 hover:text-blue-400 hover:border-b-2 hover:border-blue-400"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {displayLinks.map((link, index) =>
+                link.action ? (
+                  <button
+                    key={index}
+                    onClick={link.action}
+                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-100 hover:text-blue-400 hover:border-b-2 hover:border-blue-400`}
+                  >
+                    {link.label}
+                  </button>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
+                      pathname === link.href ||
+                      (link.href === "/dashboard" &&
+                        pathname.startsWith("/groups"))
+                        ? "text-blue-400 border-b-2 border-blue-400"
+                        : "text-gray-100 hover:text-blue-400 hover:border-b-2 hover:border-blue-400"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </div>
           </div>
 
@@ -147,48 +172,46 @@ export default function AppNavbar() {
             )}
 
             {/* Przycisk hamburger menu tylko jeśli nie jest zalogowany */}
-            {!session && (
-              <button
-                onClick={toggleMobileMenu}
-                className="inline-flex items-center justify-center p-2 ml-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                aria-expanded={isMobileMenuOpen}
-              >
-                <span className="sr-only">Otwórz menu główne</span>
-                {isMobileMenuOpen ? (
-                  <svg
-                    className="block h-6 w-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="block h-6 w-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                )}
-              </button>
-            )}
+            <button
+              onClick={toggleMobileMenu}
+              className="inline-flex items-center justify-center p-2 ml-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <span className="sr-only">Otwórz menu główne</span>
+              {isMobileMenuOpen ? (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -226,46 +249,54 @@ export default function AppNavbar() {
 
           {/* Linki nawigacyjne */}
           <div className="pt-2 pb-3 space-y-1">
-            {displayLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`block px-4 py-2 text-base font-medium ${
-                  pathname === link.href ||
-                  (link.href === "/dashboard" && pathname.startsWith("/groups"))
-                    ? "text-blue-400 bg-gray-700"
-                    : "text-gray-100 hover:text-blue-400 hover:bg-gray-700"
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {displayLinks.map((link, index) =>
+              link.action ? (
+                <button
+                  key={index}
+                  onClick={() => {
+                    link.action && link.action();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
+                >
+                  {link.label}
+                </button>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`block px-4 py-2 text-base font-medium ${
+                    pathname === link.href ||
+                    (link.href === "/dashboard" &&
+                      pathname.startsWith("/groups"))
+                      ? "text-blue-400 bg-gray-700"
+                      : "text-gray-100 hover:text-blue-400 hover:bg-gray-700"
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </div>
 
-          {/* Sekcja kroków i akcji użytkownika */}
-          <div className="border-t border-gray-700">
-            {currentStep && (
-              <div className="px-4 py-3">
-                <span className="text-sm text-gray-400">
-                  {/* Kroki dla standardowego przepływu */}
-                  {currentStep === "people" && "Krok 1: Dodaj osoby"}
-                  {currentStep === "expenses" && "Krok 2: Dodaj wydatki"}
-                  {currentStep === "results" && "Krok 3: Wyniki"}
+          {/* Informacja o kroku */}
+          <div className="pt-4 pb-3 border-t border-gray-700">
+            <div className="px-4">
+              <span className="text-sm text-gray-400">
+                {currentStep === "people" && "Krok 1: Dodaj osoby"}
+                {currentStep === "expenses" && "Krok 2: Dodaj wydatki"}
+                {currentStep === "results" && "Krok 3: Wyniki"}
+                {currentStep === "create_team" && "Krok 1: Tworzenie ekipy"}
+                {currentStep === "add_members" && "Krok 2: Dodawanie członków"}
+                {currentStep === "manage_expenses" &&
+                  "Krok 3: Zarządzanie wydatkami"}
+              </span>
+            </div>
 
-                  {/* Kroki dla przepływu z ekipami */}
-                  {currentStep === "create_team" && "Krok 1: Tworzenie ekipy"}
-                  {currentStep === "add_members" &&
-                    "Krok 2: Dodawanie członków"}
-                  {currentStep === "manage_expenses" &&
-                    "Krok 3: Zarządzanie wydatkami"}
-                </span>
-              </div>
-            )}
-
-            {/* Przycisk wyloguj dla zalogowanych użytkowników */}
+            {/* Przycisk wylogowania (tylko dla zalogowanych) */}
             {session && (
-              <div className="mt-2 pt-2 pb-3 border-t border-gray-700">
+              <div className="mt-3 pt-2 border-t border-gray-700">
                 <button
                   onClick={handleSignOut}
                   className="block w-full text-left px-4 py-2 text-base font-medium text-red-400 hover:bg-gray-700"
@@ -276,6 +307,14 @@ export default function AppNavbar() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Kalkulator */}
+      {showCalculator && (
+        <Calculator
+          onClose={handleCloseCalculator}
+          onApplyResult={() => setShowCalculator(false)}
+        />
       )}
     </nav>
   );
