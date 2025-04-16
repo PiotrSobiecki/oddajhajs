@@ -1,17 +1,18 @@
+# Konfiguracja Railway
 [build]
-builder = "ubuntu-nodejs"
-buildCommand = "yarn && yarn prisma generate && NEXT_PUBLIC_RAILWAY_ENVIRONMENT=production NODE_OPTIONS='--max-old-space-size=4096' yarn build"
+builder = "nixpacks"
 
 [deploy]
-startCommand = "yarn start"
+startCommand = "npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 100
+
+[nixpacks]
+nodejs-version = "18"
 
 [service]
 memory_limit = "4096"
 memory_request = "2048"
-cpu_limit = "2"
-cpu_request = "1"
 
 [env]
 NODE_ENV = "production"
