@@ -13,6 +13,7 @@ const nextConfig = {
     // Ignorowanie błędów ESLint podczas budowania
     ignoreDuringBuilds: true,
   },
+  poweredByHeader: false, // Usuwanie nagłówka X-Powered-By dla bezpieczeństwa
 };
 
 module.exports = nextConfig;
