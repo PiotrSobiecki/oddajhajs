@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
+
+// Statyczne generowanie strony - rozwiązanie problemu z eksportem
+export const dynamic = "force-static";
+export const dynamicParams = false;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);

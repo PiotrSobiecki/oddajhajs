@@ -14,6 +14,12 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   poweredByHeader: false, // Usuwanie nagłówka X-Powered-By dla bezpieczeństwa
+  // Dodatkowe opcje dla Railway
+  experimental: {
+    serverActions: true,
+  },
+  // Obsługa problemów z eksportem stron klienckich
+  transpilePackages: ["next-auth"],
 };
 
 module.exports = nextConfig;

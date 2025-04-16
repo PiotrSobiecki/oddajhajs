@@ -10,5 +10,10 @@ healthcheckTimeout = 100
 [nixpacks]
 nodejs-version = "18"
 
+[service]
+memory_limit = "2048"
+memory_request = "1024"
+
 [env]
-NODE_ENV = "production" 
+NODE_ENV = "production"
+NODE_OPTIONS = "--max-old-space-size=2048" 
