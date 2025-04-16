@@ -33,7 +33,109 @@ export default function Home() {
     type: "success",
   });
 
-  // Reszta kodu tej strony pozostaje bez zmian...
+  const addPerson = () => {
+    if (newPersonName.trim() === "") return;
+
+    const newPerson: Person = {
+      id: uuidv4(),
+      name: newPersonName.trim(),
+    };
+
+    setPeople([...people, newPerson]);
+    setNewPersonName("");
+  };
+
+  const importFromFile = () => {
+    // Tworzymy ukryty input file
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx,.xls";
+
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = event.target?.result;
+          processFileContent(data);
+
+          // Wyświetl toast o sukcesie
+          setToast({
+            message: "Dane zostały zaimportowane pomyślnie!",
+            visible: true,
+            type: "success",
+          });
+
+          // Ukryj toast po 5 sekundach
+          setTimeout(() => {
+            setToast((prev) => ({ ...prev, visible: false }));
+          }, 5000);
+        } catch (error) {
+          console.error("Błąd podczas przetwarzania pliku:", error);
+          setToast({
+            message:
+              "Wystąpił błąd podczas importowania danych. Sprawdź format pliku.",
+            visible: true,
+            type: "error",
+          });
+
+          setTimeout(() => {
+            setToast((prev) => ({ ...prev, visible: false }));
+          }, 5000);
+        }
+      };
+
+      reader.readAsBinaryString(file);
+    };
+
+    input.click();
+  };
+
+  const processFileContent = (data: any) => {
+    const wb = XLSX.read(data, { type: "binary" });
+    const wsname = wb.SheetNames[0];
+    const ws = wb.Sheets[wsname];
+    const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+    // Tutaj dodaj logikę przetwarzania danych z pliku CSV/Excel
+    // Na przykład, możesz zaimplementować dodawanie osób i wydatków z pliku
+
+    // To jest przykładowa implementacja - dostosuj ją do swojego formatu danych
+    if (jsonData && jsonData.length > 0) {
+      // Tymczasowe tablice do przechowywania przetworzonych danych
+      const newPeople: Person[] = [];
+      const newExpenses: Expense[] = [];
+
+      // Przetwarzanie danych - możesz dostosować tę logikę
+      for (let i = 1; i < jsonData.length; i++) {
+        const row: any = jsonData[i];
+        if (row && row.length > 0) {
+          // Przykładowa logika - dostosuj do swojego formatu
+          const personName = row[0];
+          if (personName && !newPeople.some((p) => p.name === personName)) {
+            newPeople.push({
+              id: uuidv4(),
+              name: personName,
+            });
+          }
+        }
+      }
+
+      // Aktualizacja stanu
+      setPeople((prevPeople) => {
+        // Dodaj tylko osoby, których jeszcze nie ma
+        const updatedPeople = [...prevPeople];
+        for (const person of newPeople) {
+          if (!updatedPeople.some((p) => p.name === person.name)) {
+            updatedPeople.push(person);
+          }
+        }
+        return updatedPeople;
+      });
+    }
+  };
 
   const handleShowInstructions = () => {
     setShowInstructions(true);
@@ -45,6 +147,10 @@ export default function Home() {
 
   const handleCloseCalculator = () => {
     setShowCalculator(false);
+  };
+
+  const handleCloseIntroPopup = () => {
+    setShowIntroPopup(false);
   };
 
   const resetApp = () => {
