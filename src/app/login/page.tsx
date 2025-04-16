@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
@@ -9,7 +9,8 @@ import Link from "next/link";
 // Konfiguracja dynamicznego renderowania
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+// Komponent wewnętrzny, który używa useSearchParams
+function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
@@ -84,5 +85,20 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Komponent główny, który zawija LoginForm w Suspense
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-[70vh]">
+          <div className="p-8 text-white">Ładowanie...</div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
