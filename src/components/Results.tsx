@@ -55,6 +55,9 @@ export default function Results({
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorTarget, setCalculatorTarget] = useState<string>("main");
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [confirmDeleteExpense, setConfirmDeleteExpense] = useState<
+    string | null
+  >(null);
 
   const getPersonName = (id: string) => {
     const person = people.find((p) => p.id === id);
@@ -164,13 +167,27 @@ export default function Results({
   };
 
   const handleDeleteExpense = (expenseId: string) => {
-    if (
-      window.confirm(
-        "Jesteś pewien? To zniknie na zawsze (no, chyba że wpiszesz ponownie)"
-      )
-    ) {
-      onDeleteExpense(expenseId);
+    // Pokazujemy niestandardowy popup potwierdzenia zamiast window.confirm
+    setConfirmDeleteExpense(expenseId);
+  };
+
+  const confirmDelete = () => {
+    if (confirmDeleteExpense) {
+      onDeleteExpense(confirmDeleteExpense);
+
+      // Dodanie powiadomienia toast o usunięciu wydatku
+      if (showToast) {
+        showToast("Wydatek został usunięty", "success");
+      }
+
+      // Zamykamy popup
+      setConfirmDeleteExpense(null);
     }
+  };
+
+  const cancelDelete = () => {
+    // Zamykamy popup bez usuwania
+    setConfirmDeleteExpense(null);
   };
 
   // Funkcja generująca tekst do udostępnienia
@@ -926,6 +943,35 @@ export default function Results({
           onClose={() => setShowCalculator(false)}
           onApplyResult={handleCalculatorResult}
         />
+      )}
+
+      {/* Niestandardowy popup potwierdzenia usunięcia wydatku */}
+      {confirmDeleteExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="p-6 bg-gray-800 rounded-lg shadow-xl max-w-md mx-4">
+            <h2 className="mb-4 text-lg font-semibold text-white">
+              Czy na pewno chcesz to zrobić?
+            </h2>
+            <p className="mb-6 text-gray-300">
+              Jesteś pewien? To zniknie na zawsze (no, chyba że wpiszesz
+              ponownie)
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+              >
+                Usuń wydatek
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

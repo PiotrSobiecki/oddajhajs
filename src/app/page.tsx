@@ -593,6 +593,10 @@ export default function Home() {
     );
     setExpenses(filteredExpenses);
     calculateSettlements(filteredExpenses);
+    saveState(people, filteredExpenses);
+
+    // Dodajemy powiadomienie o usunięciu wydatku
+    showToast("Wydatek został usunięty", "success");
   };
 
   const calculateSettlements = (currentExpenses: Expense[]) => {

@@ -13,13 +13,12 @@ export const dynamic = "force-dynamic";
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
   const error = searchParams?.get("error");
 
   // Prostsza wersja handlera logowania
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   // Pobieramy komunikat błędu

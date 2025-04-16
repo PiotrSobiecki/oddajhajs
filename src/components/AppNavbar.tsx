@@ -9,6 +9,13 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Calculator from "./Calculator";
 
+// Interfejs dla linków nawigacji
+interface NavLink {
+  label: string;
+  href: string;
+  action?: () => void;
+}
+
 export default function AppNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -65,14 +72,14 @@ export default function AppNavbar() {
   };
 
   // Podstawowe linki, zawsze dostępne
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { label: "Nowe rozliczenie", href: "/" },
     { label: "Instrukcja", href: "/#instructions" },
     { label: "Kalkulator", href: "#", action: handleShowCalculator },
   ];
 
   // Link do ekip tylko dla zalogowanych
-  const groupsLink = { label: "Moje ekipy 🤝", href: "/dashboard" };
+  const groupsLink: NavLink = { label: "Moje ekipy 🤝", href: "/dashboard" };
 
   // Jeśli użytkownik jest zalogowany, dodaj link do ekip
   const displayLinks = session ? [...navLinks, groupsLink] : navLinks;
@@ -254,7 +261,7 @@ export default function AppNavbar() {
                 <button
                   key={index}
                   onClick={() => {
-                    link.action && link.action();
+                    if (link.action) link.action();
                     setIsMobileMenuOpen(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
@@ -309,13 +316,8 @@ export default function AppNavbar() {
         </div>
       )}
 
-      {/* Kalkulator */}
-      {showCalculator && (
-        <Calculator
-          onClose={handleCloseCalculator}
-          onApplyResult={() => setShowCalculator(false)}
-        />
-      )}
+      {/* Kalkulator bez przycisku 'Zastosuj' */}
+      {showCalculator && <Calculator onClose={handleCloseCalculator} />}
     </nav>
   );
 }
