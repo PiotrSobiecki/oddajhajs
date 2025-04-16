@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Metadata, Viewport } from "next";
+import { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SessionProvider } from "@/components/SessionProvider";
@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   keywords:
     "rozliczenia grupowe, podział wydatków, oddaj hajs, podział kosztów, impreza, wyjazd, znajomi, pieniądze",
   authors: [{ name: "OddajHajs.org Team" }],
+  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
-  metadataBase: new URL("https://oddajhajs.org"),
   openGraph: {
     type: "website",
     title: "OddajHajs.org - Odzyskaj swój hajs!",
@@ -25,12 +25,6 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
   },
-};
-
-// Wydzielono viewport zgodnie z zaleceniami Next.js
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,21 +9,6 @@ import { ChevronDownIcon } from "@heroicons/react/24/solid";
 export default function LoginButton() {
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Sprawdź, czy urządzenie to mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
-    checkIfMobile();
-    window.addEventListener("resize", checkIfMobile);
-
-    return () => {
-      window.removeEventListener("resize", checkIfMobile);
-    };
-  }, []);
 
   if (status === "loading") {
     return (
@@ -55,28 +40,6 @@ export default function LoginButton() {
     );
   }
 
-  // Na urządzeniach mobilnych pokazujemy tylko awatar bez dropdown menu
-  if (isMobile) {
-    return (
-      <div className="flex items-center justify-center">
-        {session.user?.image ? (
-          <Image
-            src={session.user.image}
-            alt={`Zdjęcie ${session.user.name}`}
-            width={32}
-            height={32}
-            className="rounded-full border-2 border-blue-400"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white border-2 border-blue-400">
-            {session.user?.name?.charAt(0) || "U"}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Na większych ekranach pokazujemy standardowy dropdown
   return (
     <div className="relative">
       <button

@@ -1,7 +1,0 @@
-# Prisma Migrate metadata
-# Please do not edit manually
-
-[migrations]
-name = "initial migration"
-description = "Create all tables for PostgreSQL database"
-dependencies = [] 

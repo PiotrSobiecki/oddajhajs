@@ -138,7 +138,7 @@ export async function PUT(
     // Przekształć ID użytkowników na ID członków grupy dla splitBetween
     const splitBetweenMemberIds = splitBetween
       .map((userId: string) => getMemberIdByUserId(userId))
-      .filter((id: string | null): id is string => id !== null);
+      .filter((id): id is string => id !== null);
 
     // Rozpocznij transakcję, aby zmiany były atomowe
     await prisma.$transaction(async (tx) => {

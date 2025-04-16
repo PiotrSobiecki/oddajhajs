@@ -257,7 +257,7 @@ export async function POST(
     const userIds = allMembers.map((m) => m.userId);
 
     // Znajdź ID członków grupy na podstawie ID użytkowników
-    const getMemberIdByUserId = (userId: string): string | null => {
+    const getMemberIdByUserId = (userId: string) => {
       const member = allMembers.find((m) => m.userId === userId);
       return member ? member.id : null;
     };
@@ -276,10 +276,10 @@ export async function POST(
     // Przekształć ID użytkowników na ID członków grupy dla splitBetween
     const splitBetweenMemberIds = splitBetween
       .map((userId: string) => getMemberIdByUserId(userId))
-      .filter((id: string | null): id is string => id !== null);
+      .filter((id): id is string => id !== null);
 
     // Utwórz wydatek w bazie danych
-    let newExpense: any;
+    let newExpense;
 
     if (isComplexPayment) {
       // Dla złożonych płatności
@@ -291,7 +291,7 @@ export async function POST(
           isComplexPayment: true,
           date: new Date(),
           splitBetween: {
-            create: splitBetweenMemberIds.map((memberId: string) => ({
+            create: splitBetweenMemberIds.map((memberId) => ({
               member: {
                 connect: { id: memberId },
               },
@@ -339,7 +339,7 @@ export async function POST(
           isComplexPayment: false,
           date: new Date(),
           splitBetween: {
-            create: splitBetweenMemberIds.map((memberId: string) => ({
+            create: splitBetweenMemberIds.map((memberId) => ({
               member: {
                 connect: { id: memberId },
               },

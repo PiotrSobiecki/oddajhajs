@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import LoginButton from "./LoginButton";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 export default function AppNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -193,32 +193,6 @@ export default function AppNavbar() {
                   {currentStep === "manage_expenses" &&
                     "Krok 3: Zarządzanie wydatkami"}
                 </span>
-              </div>
-            )}
-
-            {session && (
-              <div className="mt-3 space-y-1 border-t border-gray-700 pt-3">
-                {session.user?.name && (
-                  <div className="px-5 pb-2 text-sm font-medium text-white">
-                    Zalogowany jako: {session.user.name}
-                  </div>
-                )}
-                <Link
-                  href="/dashboard"
-                  className="block w-full text-left px-5 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Moje ekipy
-                </Link>
-                <button
-                  onClick={() => {
-                    signOut({ callbackUrl: "/" });
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-5 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
-                >
-                  Wyloguj się
-                </button>
               </div>
             )}
           </div>
