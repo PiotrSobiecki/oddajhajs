@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { NavbarProps } from "@/types";
 import LoginButton from "./LoginButton";
+import { useSession } from "next-auth/react";
 
 export default function Navbar({
   currentStep,
@@ -12,6 +13,7 @@ export default function Navbar({
   onShowCalculator,
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -53,6 +55,14 @@ export default function Navbar({
                     Kalkulator
                   </button>
                 )}
+                {session && (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-100 hover:text-blue-400"
+                  >
+                    Moje ekipy 🤝
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -79,6 +89,7 @@ export default function Navbar({
               <button
                 onClick={toggleMobileMenu}
                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                aria-expanded={isMobileMenuOpen}
               >
                 <span className="sr-only">Otwórz menu</span>
                 {isMobileMenuOpen ? (
@@ -146,6 +157,15 @@ export default function Navbar({
                 >
                   Kalkulator
                 </button>
+              )}
+              {session && (
+                <Link
+                  href="/dashboard"
+                  className="block w-full text-left px-3 py-2 text-base font-medium text-gray-100 hover:text-blue-400 hover:bg-gray-700"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Moje ekipy 🤝
+                </Link>
               )}
             </div>
             <div className="pt-4 pb-3 border-t border-gray-700">

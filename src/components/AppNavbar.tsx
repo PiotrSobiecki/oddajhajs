@@ -47,20 +47,21 @@ export default function AppNavbar() {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Podstawowe linki, zawsze dostępne
   const navLinks = [
     { label: "Nowe rozliczenie", href: "/" },
     { label: "Instrukcja", href: "/#instructions" },
     { label: "Kalkulator", href: "/#calculator" },
-    { label: "Moje ekipy 🤝", href: "/dashboard" },
   ];
 
-  // Warunkowo dodaj link do grup tylko dla zalogowanych użytkowników
-  const filteredLinks = session
-    ? navLinks
-    : navLinks.filter((link) => link.href !== "/dashboard");
+  // Link do ekip tylko dla zalogowanych
+  const groupsLink = { label: "Moje ekipy 🤝", href: "/dashboard" };
+
+  // Jeśli użytkownik jest zalogowany, dodaj link do ekip
+  const displayLinks = session ? [...navLinks, groupsLink] : navLinks;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800 dark:bg-gray-800">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800 dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -70,7 +71,7 @@ export default function AppNavbar() {
               </span>
             </Link>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
-              {filteredLinks.map((link) => (
+              {displayLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -78,8 +79,8 @@ export default function AppNavbar() {
                     pathname === link.href ||
                     (link.href === "/dashboard" &&
                       pathname.startsWith("/groups"))
-                      ? "text-blue-400"
-                      : "text-gray-100 hover:text-blue-400"
+                      ? "text-blue-400 border-b-2 border-blue-400"
+                      : "text-gray-100 hover:text-blue-400 hover:border-b-2 hover:border-blue-400"
                   }`}
                 >
                   {link.label}
@@ -110,14 +111,11 @@ export default function AppNavbar() {
           </div>
 
           <div className="flex items-center md:hidden">
-            <div className="mr-2">
-              <div className="flex items-center">
-                <LoginButton />
-              </div>
-            </div>
+            <LoginButton />
             <button
               onClick={toggleMobileMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              className="inline-flex items-center justify-center p-2 ml-2 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded={isMobileMenuOpen}
             >
               <span className="sr-only">Otwórz menu główne</span>
               {isMobileMenuOpen ? (
@@ -159,16 +157,16 @@ export default function AppNavbar() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-gray-800">
+        <div className="md:hidden bg-gray-800 shadow-lg">
           <div className="pt-2 pb-3 space-y-1">
-            {filteredLinks.map((link) => (
+            {displayLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`block px-3 py-2 text-base font-medium ${
                   pathname === link.href ||
                   (link.href === "/dashboard" && pathname.startsWith("/groups"))
-                    ? "text-blue-400 bg-gray-800"
+                    ? "text-blue-400 bg-gray-700"
                     : "text-gray-100 hover:text-blue-400 hover:bg-gray-700"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -177,8 +175,8 @@ export default function AppNavbar() {
               </Link>
             ))}
           </div>
-          <div className="pt-4 pb-3 border-t border-gray-700">
-            {currentStep && (
+          {currentStep && (
+            <div className="pt-4 pb-3 border-t border-gray-700">
               <div className="flex items-center px-5 pt-2 pb-2">
                 <span className="text-sm text-gray-400">
                   {/* Kroki dla standardowego przepływu */}
@@ -194,8 +192,8 @@ export default function AppNavbar() {
                     "Krok 3: Zarządzanie wydatkami"}
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </nav>

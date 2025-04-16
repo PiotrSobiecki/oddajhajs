@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,23 @@ import { ChevronDownIcon } from "@heroicons/react/24/solid";
 export default function LoginButton() {
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Obsługa kliknięcia poza dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   if (status === "loading") {
     return (
@@ -41,10 +58,12 @@ export default function LoginButton() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center justify-center space-x-1 text-sm focus:outline-none"
+        aria-expanded={isDropdownOpen}
+        aria-haspopup="true"
       >
         {session.user?.image ? (
           <Image
@@ -67,19 +86,30 @@ export default function LoginButton() {
       </button>
 
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-10 md:origin-top-right md:right-0 origin-top-left left-0">
+        <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 md:origin-top-right md:right-0 origin-top-left left-0">
           {session.user?.name && (
-            <p className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700 md:hidden">
-              {session.user.name}
-            </p>
+            <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
+              <span className="block font-medium">{session.user.name}</span>
+              <span className="block text-xs text-gray-400">
+                {session.user.email}
+              </span>
+            </div>
           )}
           <Link
             href="/dashboard"
             className="block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-blue-400"
             onClick={() => setIsDropdownOpen(false)}
           >
-            Moje ekipy
+            Moje ekipy 🤝
           </Link>
+          <Link
+            href="/"
+            className="block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-blue-400"
+            onClick={() => setIsDropdownOpen(false)}
+          >
+            Nowe rozliczenie 💰
+          </Link>
+          <div className="border-t border-gray-700 my-1"></div>
           <button
             onClick={() => {
               signOut({ callbackUrl: "/" });
