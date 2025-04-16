@@ -14,22 +14,22 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Ustawienie zmiennej środowiskowej dla Prisma
-ENV DATABASE_URL="file:./dev.db"
-# Wartość domyślna dla budowania, zostanie nadpisana w runtime
+# Używamy URL dla PostgreSQL jako zmiennej systemowej, którą można nadpisać
+ENV DATABASE_URL="postgresql://postgres:postgres@postgres:5432/oddajhajs?schema=public"
 ENV NEXTAUTH_URL="http://localhost:3000"
 ENV NEXTAUTH_SECRET="IeKs/7zAArLqn1dEVefNq8nMs+Z46dgQG/ZtOisFp64="
 
 # Najpierw generowanie prisma
 RUN npx prisma generate
 
-# Usuwanie skryptu postbuild, który może powodować problemy
-RUN npm pkg delete scripts.postbuild
+# Debugujemy proces budowania
+RUN echo "Building Next.js app..."
 
 # Build with TypeScript checking disabled
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV TYPESCRIPT_SKIP_TYPECHECKING 1
 ENV NODE_ENV production
-RUN npm run build
+RUN npm run docker-build || (echo "Build failed" && cat .next/error.log && exit 1)
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -37,9 +37,9 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV DATABASE_URL="file:./dev.db"
+# DATABASE_URL będzie pobierany z zmiennych środowiskowych kontenera
+ENV DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/oddajhajs?schema=public}
 # NEXTAUTH_URL będzie pobierany z zmiennych środowiskowych kontenera
-# Domyślnie używamy localhost, ale w produkcji należy ustawić odpowiedni URL
 ENV NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
 ENV NEXTAUTH_SECRET="IeKs/7zAArLqn1dEVefNq8nMs+Z46dgQG/ZtOisFp64="
 
@@ -52,7 +52,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/dev.db ./dev.db
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
