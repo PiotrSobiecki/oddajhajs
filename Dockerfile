@@ -52,7 +52,7 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "Sprawdzanie katalogu .next:"' >> /app/entrypoint.sh && \
     echo 'ls -la /app/.next/' >> /app/entrypoint.sh && \
     echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
-    echo 'npx prisma migrate deploy && node server.js' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy && npm start' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 # Uruchom migracje i aplikację
