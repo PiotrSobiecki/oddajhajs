@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Ustawiam zmienne środowiskowe, aby wyłączyć telemetrię i sprawdzanie typów
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV NEXT_SKIP_TYPESCRIPT_CHECK 1
+ENV TYPESCRIPT_CHECK false
 
 # Etap instalacji zależności
 FROM base AS dependencies
@@ -40,6 +40,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/.env ./.env
 
 # Ustawienie uprawnień dla nextjs użytkownika
 RUN chown -R nextjs:nodejs /app
