@@ -41,6 +41,10 @@ RUN mkdir -p /app/.next && \
 # Upewnij się, że katalog prisma jest dostępny
 RUN ls -la /app/prisma
 
+# Sprawdź, czy istnieje wersja standalone utworzona przez Next.js
+RUN ls -la /app/.next/ || echo "Katalog .next nie istnieje"
+RUN ls -la /app/.next/standalone/ || echo "Katalog .next/standalone nie istnieje"
+
 # Tworzę prosty skrypt startowy bez escape sequences które powodują problemy
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "============================================"' >> /app/entrypoint.sh && \
@@ -51,8 +55,16 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo 'echo "============================================"' >> /app/entrypoint.sh && \
     echo 'echo "Sprawdzanie katalogu .next:"' >> /app/entrypoint.sh && \
     echo 'ls -la /app/.next/' >> /app/entrypoint.sh && \
+    echo 'echo "Sprawdzanie katalogu .next/standalone:"' >> /app/entrypoint.sh && \
+    echo 'ls -la /app/.next/standalone/ || echo "Katalog .next/standalone nie istnieje"' >> /app/entrypoint.sh && \
     echo 'echo "Uruchamianie aplikacji..."' >> /app/entrypoint.sh && \
-    echo 'npx prisma migrate deploy && npm start' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
+    echo 'if [ -f /app/.next/standalone/server.js ]; then' >> /app/entrypoint.sh && \
+    echo '  node /app/.next/standalone/server.js' >> /app/entrypoint.sh && \
+    echo 'else' >> /app/entrypoint.sh && \
+    echo '  echo "Brak pliku standalone/server.js, próbuję uruchomić w standardowy sposób"' >> /app/entrypoint.sh && \
+    echo '  npm start' >> /app/entrypoint.sh && \
+    echo 'fi' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 # Uruchom migracje i aplikację
