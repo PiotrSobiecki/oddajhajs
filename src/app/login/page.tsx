@@ -6,12 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
 
-// Upewniamy się, że strona nie jest eksportowana statycznie
-export const config = {
-  unstable_runtimeJS: true,
-};
-
-// Używamy dynamicznego renderowania z uruchomieniem na środowisku Node.js
+// Używamy dynamicznego renderowania
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 

@@ -14,16 +14,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   poweredByHeader: false, // Usuwanie nagłówka X-Powered-By dla bezpieczeństwa
-
-  // Wyłączamy całkowicie eksport stron, które używają next-auth
-  experimental: {
-    serverComponentsExternalPackages: ["next-auth"],
-  },
-  // Konfiguracja dla eksportera Next.js
-  // To pomaga w rozwiązaniu problemu z eksportem strony logowania
-  trailingSlash: false,
-  skipTrailingSlashRedirect: true,
-  pageExtensions: ["js", "jsx", "ts", "tsx"],
 };
 
 module.exports = nextConfig;

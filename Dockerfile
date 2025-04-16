@@ -25,8 +25,6 @@ ENV PORT 3000
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Pomijamy sprawdzanie typów podczas budowania
 ENV NEXT_TYPESCRIPT_COMPILE_ONLY=1
-# Pomijamy eksport strony logowania i zawsze używamy trybu dynamicznego
-ENV NEXT_MINIMAL=1
 
 # Modyfikujemy skrypt budowania, aby ignorować błędy podczas eksportu
 RUN npm run build || (echo "Budowanie zakończone z ostrzeżeniami, ale kontynuujemy" && exit 0)
