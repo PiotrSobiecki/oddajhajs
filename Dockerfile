@@ -29,6 +29,9 @@ ENV NEXT_TYPESCRIPT_COMPILE_ONLY=1
 # Modyfikujemy skrypt budowania, aby ignorować błędy podczas eksportu
 RUN npm run build || (echo "Budowanie zakończone z ostrzeżeniami, ale kontynuujemy" && exit 0)
 
+# Tworzymy pusty prerender-manifest.json
+RUN echo '{"version":3,"routes":{},"dynamicRoutes":{},"preview":{"previewModeId":"","previewModeSigningKey":"","previewModeEncryptionKey":""}}' > /app/.next/prerender-manifest.json
+
 # Upewnij się, że katalog prisma jest dostępny
 RUN ls -la /app/prisma
 

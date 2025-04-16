@@ -14,6 +14,12 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   poweredByHeader: false, // Usuwanie nagłówka X-Powered-By dla bezpieczeństwa
+
+  // Wyłączenie prerenderowania, które powoduje problemy
+  experimental: {
+    disableOptimizedLoading: true,
+    optimizeCss: false,
+  },
 };
 
 module.exports = nextConfig;
