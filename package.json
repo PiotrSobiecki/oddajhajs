@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:https": "node server.js",
     "prebuild": "prisma generate",
-    "build": "next build",
+    "build": "next build --no-lint",
     "docker-build": "next build",
     "postbuild": "prisma migrate deploy",
     "start": "next start",

@@ -6,9 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
 
-// Konfiguracja eksportu strony
-export const dynamic = "force-dynamic"; // Zmuszamy do trybu dynamicznego
-export const runtime = "nodejs"; // Używamy runtime nodejs
+// Upewniamy się, że strona nie jest eksportowana statycznie
+export const config = {
+  unstable_runtimeJS: true,
+};
+
+// Używamy dynamicznego renderowania z uruchomieniem na środowisku Node.js
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,22 +21,19 @@ export default function LoginPage() {
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
   const error = searchParams?.get("error");
 
-  const handleGoogleLogin = async () => {
+  // Prostsza wersja handlera logowania
+  const handleGoogleLogin = () => {
     setIsLoading(true);
-    await signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl });
   };
 
-  const getErrorMessage = () => {
-    if (error === "OAuthAccountNotLinked") {
-      return "To konto e-mail jest już połączone z innym kontem. Użyj tego samego dostawcy, którego użyłeś wcześniej.";
-    }
-    if (error) {
-      return "Wystąpił błąd podczas logowania. Spróbuj ponownie.";
-    }
-    return null;
-  };
-
-  const errorMessage = getErrorMessage();
+  // Pobieramy komunikat błędu
+  const errorMessage =
+    error === "OAuthAccountNotLinked"
+      ? "To konto e-mail jest już połączone z innym kontem. Użyj tego samego dostawcy, którego użyłeś wcześniej."
+      : error
+      ? "Wystąpił błąd podczas logowania. Spróbuj ponownie."
+      : null;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh]">
