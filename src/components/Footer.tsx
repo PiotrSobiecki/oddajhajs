@@ -2,6 +2,7 @@
 
 import React from "react";
 import { FaFacebook } from "react-icons/fa";
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -23,6 +24,20 @@ export default function Footer() {
               <FaFacebook /> Dołącz do naszej grupy na Facebooku
             </a>
           </p>
+          <div className="flex flex-wrap justify-center gap-4 mb-2">
+            <Link
+              href="/regulamin"
+              className="text-blue-400 hover:text-blue-300 text-sm"
+            >
+              Regulamin serwisu
+            </Link>
+            <Link
+              href="/polityka-prywatnosci"
+              className="text-blue-400 hover:text-blue-300 text-sm"
+            >
+              Polityka prywatności
+            </Link>
+          </div>
           <p className="text-gray-400">
             &copy; {new Date().getFullYear()} | Kontakt:{" "}
             <a

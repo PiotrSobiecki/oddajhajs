@@ -180,39 +180,33 @@ export default function AppNavbar() {
 
   // Dodaję efekt nasłuchujący zdarzenia session:update
   useEffect(() => {
-    // Funkcja sprawdzająca aktualizację nazwy użytkownika
-    const checkSessionUpdate = () => {
-      const storedSessionData = localStorage.getItem("lastSessionUpdate");
-      if (storedSessionData) {
-        try {
-          const { timestamp, userName } = JSON.parse(storedSessionData);
-          // Sprawdzamy, czy nazwa użytkownika w sesji różni się od tej w localStorage
-          if (session?.user?.name !== userName) {
-            // Odświeżamy stronę, aby zaktualizować nazwę w navbarze
-            window.location.reload();
-          }
-        } catch (e) {
-          console.error("Błąd odczytu danych sesji:", e);
-        }
+    const handleSessionUpdate = (e: CustomEvent) => {
+      // Wymusić odświeżenie sesji, aby wszystkie komponenty odzwierciedlały aktualne dane
+      if (e.detail?.user?.name && update) {
+        update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: e.detail.user.name,
+          },
+        });
       }
     };
 
-    // Sprawdzamy przy montowaniu komponentu
-    checkSessionUpdate();
-
-    // Nasłuchujemy zdarzenia storage, które może być wywołane z innych kart
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "lastSessionUpdate") {
-        checkSessionUpdate();
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
+    // Dodajemy nasłuchiwanie eventu session:update
+    window.addEventListener(
+      "session:update",
+      handleSessionUpdate as EventListener
+    );
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      // Usuwamy nasłuchiwanie przy odmontowaniu komponentu
+      window.removeEventListener(
+        "session:update",
+        handleSessionUpdate as EventListener
+      );
     };
-  }, [session]);
+  }, [session, update]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800 dark:bg-gray-800 shadow-md">

@@ -102,15 +102,6 @@ export default function LoginButton() {
         },
       });
 
-      // Zapisujemy informację o aktualizacji nazwy w localStorage
-      localStorage.setItem(
-        "lastSessionUpdate",
-        JSON.stringify({
-          timestamp: new Date().getTime(),
-          userName: newName,
-        })
-      );
-
       // Zamykamy formularz edycji
       setIsEditingName(false);
 
