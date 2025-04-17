@@ -17,43 +17,35 @@ export default function Navbar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session, update } = useSession();
 
-  // Odświeżanie sesji periodycznie
+  // Dodaję efekt nasłuchujący zdarzenia session:update
   useEffect(() => {
-    if (!update) return;
-
-    const refreshSession = async () => {
-      try {
-        await update();
-      } catch (error) {
-        console.error("Błąd odświeżania sesji w Navbar:", error);
+    const handleSessionUpdate = (e: CustomEvent) => {
+      // Wymusić odświeżenie sesji, aby wszystkie komponenty odzwierciedlały aktualne dane
+      if (e.detail?.user?.name && update) {
+        update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: e.detail.user.name,
+          },
+        });
       }
     };
 
-    // Odświeżamy sesję po załadowaniu komponentu
-    refreshSession();
+    // Dodajemy nasłuchiwanie eventu session:update
+    window.addEventListener(
+      "session:update",
+      handleSessionUpdate as EventListener
+    );
 
-    // Odświeżaj sesję co 2 minuty
-    const intervalId = setInterval(refreshSession, 120000);
-
-    return () => clearInterval(intervalId);
-  }, [update]);
-
-  // Funkcja sprawdzająca aktualizację nazwy użytkownika
-  const checkSessionUpdate = () => {
-    const storedSessionData = localStorage.getItem("lastSessionUpdate");
-    if (storedSessionData) {
-      try {
-        const { timestamp, userName } = JSON.parse(storedSessionData);
-        // Sprawdzamy, czy nazwa użytkownika w sesji różni się od tej w localStorage
-        if (session?.user?.name !== userName) {
-          // Odświeżamy stronę, aby zaktualizować nazwę w navbarze
-          window.location.reload();
-        }
-      } catch (e) {
-        console.error("Błąd odczytu danych sesji:", e);
-      }
-    }
-  };
+    return () => {
+      // Usuwamy nasłuchiwanie przy odmontowaniu komponentu
+      window.removeEventListener(
+        "session:update",
+        handleSessionUpdate as EventListener
+      );
+    };
+  }, [session, update]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
