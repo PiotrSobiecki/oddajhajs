@@ -90,16 +90,34 @@ export default function LoginButton() {
         throw new Error(data.error || "Błąd aktualizacji nazwy");
       }
 
+      // Najpierw zapisujemy nową nazwę w zmiennej, aby uniknąć problemów z asynchronicznością
+      const newName = displayName.trim();
+
       // Aktualizacja sesji po zmianie nazwy
       await update({
         ...session,
         user: {
           ...session?.user,
-          name: displayName.trim(),
+          name: newName,
         },
       });
 
-      setIsEditingName(false);
+      // Ustawiamy nieco dłuższe opóźnienie, aby sesja miała czas się w pełni zaktualizować
+      setTimeout(() => {
+        // Wysyłamy zdarzenie o zmianie sesji, aby wszystkie komponenty mogły się zaktualizować
+        const updateEvent = new CustomEvent("session:update", {
+          detail: {
+            user: {
+              ...session?.user,
+              name: newName,
+            },
+          },
+        });
+        window.dispatchEvent(updateEvent);
+
+        // Zamykamy formularz edycji
+        setIsEditingName(false);
+      }, 100);
     } catch (error) {
       console.error("Błąd podczas aktualizacji nazwy:", error);
       setErrorMessage(error instanceof Error ? error.message : "Wystąpił błąd");

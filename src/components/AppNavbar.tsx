@@ -178,6 +178,36 @@ export default function AppNavbar() {
     setIsMobileMenuOpen(false);
   };
 
+  // Dodaję efekt nasłuchujący zdarzenia session:update
+  useEffect(() => {
+    const handleSessionUpdate = (e: CustomEvent) => {
+      // Wymusić odświeżenie sesji, aby wszystkie komponenty odzwierciedlały aktualne dane
+      if (e.detail?.user?.name && update) {
+        update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: e.detail.user.name,
+          },
+        });
+      }
+    };
+
+    // Dodajemy nasłuchiwanie eventu session:update
+    window.addEventListener(
+      "session:update",
+      handleSessionUpdate as EventListener
+    );
+
+    return () => {
+      // Usuwamy nasłuchiwanie przy odmontowaniu komponentu
+      window.removeEventListener(
+        "session:update",
+        handleSessionUpdate as EventListener
+      );
+    };
+  }, [session, update]);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800 dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

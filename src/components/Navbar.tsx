@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { NavbarProps } from "@/types";
 import LoginButton from "./LoginButton";
@@ -15,7 +15,37 @@ export default function Navbar({
   onShowCalculator,
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+
+  // Dodaję efekt nasłuchujący zdarzenia session:update
+  useEffect(() => {
+    const handleSessionUpdate = (e: CustomEvent) => {
+      // Wymusić odświeżenie sesji, aby wszystkie komponenty odzwierciedlały aktualne dane
+      if (e.detail?.user?.name && update) {
+        update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: e.detail.user.name,
+          },
+        });
+      }
+    };
+
+    // Dodajemy nasłuchiwanie eventu session:update
+    window.addEventListener(
+      "session:update",
+      handleSessionUpdate as EventListener
+    );
+
+    return () => {
+      // Usuwamy nasłuchiwanie przy odmontowaniu komponentu
+      window.removeEventListener(
+        "session:update",
+        handleSessionUpdate as EventListener
+      );
+    };
+  }, [session, update]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
