@@ -18,6 +18,27 @@ export default function LoginButton() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [windowWidth, setWindowWidth] = useState(0);
 
+  // Dodajemy efekt, który będzie odświeżał sesję co minutę,
+  // aby aktualizować nazwę użytkownika w interfejsie
+  useEffect(() => {
+    const refreshSession = async () => {
+      try {
+        await update();
+        console.log("Sesja odświeżona");
+      } catch (error) {
+        console.error("Błąd odświeżania sesji:", error);
+      }
+    };
+
+    // Odświeżamy sesję po załadowaniu komponentu
+    refreshSession();
+
+    // Ustawiamy interwał odświeżania sesji co minutę
+    const intervalId = setInterval(refreshSession, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [update]);
+
   // Inicjalizacja displayName na podstawie session
   useEffect(() => {
     if (session?.user?.name) {
