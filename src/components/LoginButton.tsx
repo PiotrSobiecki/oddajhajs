@@ -105,10 +105,8 @@ export default function LoginButton() {
       // Zamykamy formularz edycji
       setIsEditingName(false);
 
-      // Ustawiamy opóźnienie i wymuszamy przeładowanie strony, aby odświeżyć sesję we wszystkich komponentach
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Całkowicie odświeżamy stronę, aby wymusić aktualizację wszystkich komponentów
+      window.location.reload();
     } catch (error) {
       console.error("Błąd podczas aktualizacji nazwy:", error);
       setErrorMessage(error instanceof Error ? error.message : "Wystąpił błąd");
