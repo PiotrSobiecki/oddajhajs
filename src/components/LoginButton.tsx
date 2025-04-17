@@ -102,22 +102,13 @@ export default function LoginButton() {
         },
       });
 
-      // Ustawiamy nieco dłuższe opóźnienie, aby sesja miała czas się w pełni zaktualizować
-      setTimeout(() => {
-        // Wysyłamy zdarzenie o zmianie sesji, aby wszystkie komponenty mogły się zaktualizować
-        const updateEvent = new CustomEvent("session:update", {
-          detail: {
-            user: {
-              ...session?.user,
-              name: newName,
-            },
-          },
-        });
-        window.dispatchEvent(updateEvent);
+      // Zamykamy formularz edycji
+      setIsEditingName(false);
 
-        // Zamykamy formularz edycji
-        setIsEditingName(false);
-      }, 100);
+      // Ustawiamy opóźnienie i wymuszamy przeładowanie strony, aby odświeżyć sesję we wszystkich komponentach
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Błąd podczas aktualizacji nazwy:", error);
       setErrorMessage(error instanceof Error ? error.message : "Wystąpił błąd");
