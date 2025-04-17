@@ -16,6 +16,7 @@ export default function LoginButton() {
   const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [windowWidth, setWindowWidth] = useState(0);
 
   // Inicjalizacja displayName na podstawie session
   useEffect(() => {
@@ -23,6 +24,19 @@ export default function LoginButton() {
       setDisplayName(session.user.name);
     }
   }, [session?.user?.name]);
+
+  // Dodajemy efekt do śledzenia szerokości ekranu
+  useEffect(() => {
+    // Ustaw szerokość przy montowaniu
+    setWindowWidth(window.innerWidth);
+
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Obsługa kliknięcia poza dropdown
   useEffect(() => {
@@ -101,6 +115,16 @@ export default function LoginButton() {
     setErrorMessage("");
   };
 
+  // Funkcja do ustawienia pozycji dropdown
+  const getDropdownStyle = () => {
+    if (windowWidth < 640) {
+      // Mobilna
+      return { right: "10px", left: "auto", transform: "none" };
+    } else {
+      return {}; // Domyślne ustawienia dla większych ekranów
+    }
+  };
+
   if (status === "loading") {
     return (
       <button
@@ -160,7 +184,10 @@ export default function LoginButton() {
       </button>
 
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg py-1 z-50 md:origin-top-right md:right-0 origin-top-left left-0">
+        <div
+          className="absolute z-50 w-64 py-1 mt-2 text-sm bg-gray-800 rounded-md shadow-lg"
+          style={getDropdownStyle()}
+        >
           {session.user && (
             <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
               {isEditingName ? (

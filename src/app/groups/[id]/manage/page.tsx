@@ -45,6 +45,8 @@ export default function ManageGroupPage() {
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
+  const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     visible: boolean;
@@ -154,6 +156,13 @@ export default function ManageGroupPage() {
   };
 
   const removeMember = async (memberId: string) => {
+    // Jeśli nie ma potwierdzenia, pokazujemy dialog potwierdzenia
+    if (!showRemoveMemberConfirm) {
+      setMemberToRemove(memberId);
+      setShowRemoveMemberConfirm(true);
+      return;
+    }
+
     try {
       // Najpierw sprawdzamy, czy członek nie jest powiązany z żadnymi wydatkami
       const checkResponse = await fetch(
@@ -197,18 +206,12 @@ export default function ManageGroupPage() {
       // Dodajemy krótkie opóźnienie, aby dać czas na przetworzenie zmian w bazie danych
       setTimeout(async () => {
         await fetchGroupDetails();
-
-        // Dodatkowo filtrujemy listę członków lokalnie, aby natychmiast odzwierciedlić zmiany
-        if (group) {
-          setGroup({
-            ...group,
-            members: group.members.filter((m) => m.id !== memberId),
-          });
-        }
       }, 300);
     } catch (err: any) {
       showToast(err.message, "error");
-      setError(err.message);
+    } finally {
+      setShowRemoveMemberConfirm(false);
+      setMemberToRemove(null);
     }
   };
 
@@ -521,13 +524,35 @@ export default function ManageGroupPage() {
                   </div>
                 </div>
                 {member.user.id !== group.creatorId && (
-                  <button
-                    onClick={() => removeMember(member.id)}
-                    className="p-2 text-red-400 hover:text-red-300"
-                    title="Usuń członka"
-                  >
-                    <FaTimes />
-                  </button>
+                  <>
+                    {showRemoveMemberConfirm && memberToRemove === member.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShowRemoveMemberConfirm(false);
+                            setMemberToRemove(null);
+                          }}
+                          className="px-2 py-1 text-xs text-white bg-gray-600 rounded hover:bg-gray-500"
+                        >
+                          Anuluj
+                        </button>
+                        <button
+                          onClick={() => removeMember(member.id)}
+                          className="px-2 py-1 text-xs text-white bg-red-600 rounded hover:bg-red-500"
+                        >
+                          Usuń
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => removeMember(member.id)}
+                        className="p-2 text-red-400 hover:text-red-300"
+                        title="Usuń członka"
+                      >
+                        <FaTimes />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             ))}
