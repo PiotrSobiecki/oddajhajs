@@ -5,11 +5,24 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
+import { PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function LoginButton() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Inicjalizacja displayName na podstawie session
+  useEffect(() => {
+    if (session?.user?.name) {
+      setDisplayName(session.user.name);
+    }
+  }, [session?.user?.name]);
 
   // Obsługa kliknięcia poza dropdown
   useEffect(() => {
@@ -19,13 +32,74 @@ export default function LoginButton() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsDropdownOpen(false);
+        if (isEditingName) {
+          setIsEditingName(false);
+          setDisplayName(session?.user?.name || "");
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [isEditingName, session?.user?.name]);
+
+  // Automatyczne focus na input po przejściu do trybu edycji
+  useEffect(() => {
+    if (isEditingName && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditingName]);
+
+  // Obsługa zapisywania nowej nazwy użytkownika
+  const saveDisplayName = async () => {
+    if (!displayName.trim()) {
+      setErrorMessage("Nazwa nie może być pusta");
+      return;
+    }
+
+    setIsUpdating(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/user/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ displayName: displayName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Błąd aktualizacji nazwy");
+      }
+
+      // Aktualizacja sesji po zmianie nazwy
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          name: displayName.trim(),
+        },
+      });
+
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji nazwy:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Wystąpił błąd");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Anulowanie edycji nazwy
+  const cancelEditName = () => {
+    setIsEditingName(false);
+    setDisplayName(session?.user?.name || "");
+    setErrorMessage("");
+  };
 
   if (status === "loading") {
     return (
@@ -86,13 +160,67 @@ export default function LoginButton() {
       </button>
 
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 md:origin-top-right md:right-0 origin-top-left left-0">
-          {session.user?.name && (
+        <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg py-1 z-50 md:origin-top-right md:right-0 origin-top-left left-0">
+          {session.user && (
             <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
-              <span className="block font-medium">{session.user.name}</span>
-              <span className="block text-xs text-gray-400">
-                {session.user.email}
-              </span>
+              {isEditingName ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="block font-medium text-gray-400">
+                      Edytuj nazwę:
+                    </span>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={saveDisplayName}
+                        disabled={isUpdating}
+                        className="p-1 text-green-500 hover:text-green-400 disabled:opacity-50"
+                        title="Zapisz"
+                      >
+                        <CheckIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={cancelEditName}
+                        className="p-1 text-red-500 hover:text-red-400"
+                        title="Anuluj"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    placeholder="Wprowadź nazwę..."
+                    maxLength={30}
+                  />
+
+                  {errorMessage && (
+                    <p className="text-xs text-red-400">{errorMessage}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="block font-medium">
+                      {session.user.name}
+                    </span>
+                    <span className="block text-xs text-gray-400">
+                      {session.user.email}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setIsEditingName(true)}
+                    className="p-1 text-blue-400 hover:text-blue-300"
+                    title="Edytuj nazwę"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <Link
