@@ -102,6 +102,26 @@ export default function LoginButton() {
         },
       });
 
+      // Zapisujemy informację o aktualizacji nazwy w localStorage
+      localStorage.setItem(
+        "lastSessionUpdate",
+        JSON.stringify({
+          timestamp: new Date().getTime(),
+          userName: newName,
+        })
+      );
+
+      // Emitujemy zdarzenie niestandardowe, które powiadomi inne komponenty o aktualizacji sesji
+      const updateEvent = new CustomEvent("session:update", {
+        detail: {
+          user: {
+            ...session?.user,
+            name: newName,
+          },
+        },
+      });
+      window.dispatchEvent(updateEvent);
+
       // Zamykamy formularz edycji
       setIsEditingName(false);
 
