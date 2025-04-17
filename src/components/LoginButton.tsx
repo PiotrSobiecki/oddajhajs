@@ -138,8 +138,16 @@ export default function LoginButton() {
     if (windowWidth < 640) {
       // Mobilna
       return { right: "10px", left: "auto", transform: "none" };
+    } else if (windowWidth >= 640 && windowWidth < 1024) {
+      // Dla mniejszych ekranów desktopowych - wyrównaj mocniej w lewo
+      return {
+        right: "auto",
+        left: "-60px", // Przesunięcie całego menu w lewo
+        transform: "none",
+      };
     } else {
-      return {}; // Domyślne ustawienia dla większych ekranów
+      // Większe ekrany - standardowe pozycjonowanie
+      return { right: "0", left: "auto", transform: "none" };
     }
   };
 
@@ -204,7 +212,10 @@ export default function LoginButton() {
       {isDropdownOpen && (
         <div
           className="absolute z-50 w-64 py-1 mt-2 text-sm bg-gray-800 rounded-md shadow-lg"
-          style={getDropdownStyle()}
+          style={{
+            ...getDropdownStyle(),
+            maxWidth: "calc(100vw - 20px)",
+          }}
         >
           {session.user && (
             <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
